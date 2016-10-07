@@ -1,0 +1,17 @@
+* Service de notifications
+
+  - si on fait un thread il sera kill à la fermeture de l'app
+  
+  - pour Android :
+https://kivy.org/planet/2014/01/building-a-background-application-on-android-with-kivy/
+  
+  - pour iOS :
+pyobjus accède à toute classe Obj-C de iOS, voir du côté de remote notification
+
+Local and Remote Notification :
+https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/WhatAreRemoteNotif.html
+
+Classe pour les notifications locales : (/!\ deprecated iOS10+)
+https://developer.apple.com/reference/uikit/uilocalnotification
+
+Regarder le Google groupe kivy-users pour background : n’a pas aidé
