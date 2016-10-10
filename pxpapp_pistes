@@ -15,3 +15,8 @@ Classe pour les notifications locales : (/!\ deprecated iOS10+)
 https://developer.apple.com/reference/uikit/uilocalnotification
 
 Regarder le Google groupe kivy-users pour background : n’a pas aidé
+
+* Communication entre service et processus
+
+  - exemple de oscAPI:
+https://github.com/kivy/kivy/blob/master/kivy/lib/osc/oscAPI.py

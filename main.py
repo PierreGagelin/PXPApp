@@ -25,7 +25,7 @@ from kivy.core.window import Window
 from kivy.utils import platform
 
 # plyer should work on iOS but not for notification
-if platform == "android":
+if platform == "android" or platform == "linux":
   from plyer import notification
 else:
   notification = None
@@ -35,8 +35,9 @@ except:
   vibrator = None
 
 from kivy.clock import Clock, mainthread
+from kivy.lib import osc
 import threading
-import time
+from time import time
 
 import paramiko, socket
 
@@ -403,10 +404,10 @@ class StoreWidget(BodyLayout):
     client = paramiko.client.SSHClient()
     client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
     client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.parent.parent.parent.passwd)
+      '178.170.72.68',
+      port = 44700,
+      username = 'pierre',
+      password = self.parent.parent.parent.parent.passwd)
     directory = 'Home/'
     cmd = 'ls /var/www/PXPAppProducts/' + directory
     stdin, stdout, stderr = client.exec_command(cmd)
@@ -425,8 +426,7 @@ class StoreWidget(BodyLayout):
         source = src,
         allow_stretch = True,
         size_hint = (1, None),
-        height = 200
-      ))
+        height = 200))
 
 class RootWidget(BoxLayout):
   salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
@@ -532,10 +532,10 @@ class CategoryWidget(BoxLayout):
     client = paramiko.client.SSHClient()
     client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
     client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.passwd)
+      '178.170.72.68',
+      port = 44700,
+      username = 'pierre',
+      password = self.parent.passwd)
     cmd = 'ls /var/www/PXPAppProducts/' + directory
     stdin, stdout, stderr = client.exec_command(cmd)
     for entry in stdout.readlines():
@@ -550,10 +550,10 @@ class CategoryWidget(BoxLayout):
       image += '_0.jpg'
       src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + image
       self.add_widget(AsyncImageButton(
-          source = src,
-          allow_stretch = True,
-          size_hint = (1, None),
-          height = 200))
+        source = src,
+        allow_stretch = True,
+        size_hint = (1, None),
+        height = 200))
   
   def return_to_root(self):
     self.clear_widgets()
@@ -595,10 +595,10 @@ class ProductWidget(BoxLayout):
     client = paramiko.client.SSHClient()
     client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
     client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.passwd)
+      '178.170.72.68',
+      port = 44700,
+      username = 'pierre',
+      password = self.parent.passwd)
     ref = 'cat /home/pierre/PXPAppProducts/' + directory + '/' + \
       name + '_ref.txt'
     price = string.replace(ref, '_ref.txt', '_price.txt')
@@ -618,18 +618,46 @@ class ProductWidget(BoxLayout):
     self.clear_widgets()
     self.parent.__init__()
 
+def some_api_callback(message, *args):
+   print 'got a message: ', message
+
 class PXPApp(App):
   def build(self):
+    # tests storage
+    if platform == 'linux':
+      from kivy.storage.dictstore import DictStore
+      from os.path import join
+      data_dir = getattr(self, 'user_data_dir')
+      store = DictStore(join(data_dir, 'notification.dat'))
+      LS = None
+      if store.exists('last_stamp'):
+        LS = store.get('last_stamp')['sec']
+      else:
+        LS = str(time())
+        store.put('last_stamp', sec = LS)
+      ttl = 'title'
+      msg = 'last notif: ' + str(LS)
+      notification.notify(title = ttl, message = msg)
     # launches the notification service
     if platform == 'android':
       from android import AndroidService
       service = AndroidService(
-        'PXPApp',
-        'starting notification service... '
-      )
-      service.start('any argument')
+        'hello',
+        'world')
+      service.start('useless')
       self.service = service
+      
+      activityport = 3001
+      osc.init()
+      oscid = osc.listen(ipAddr='127.0.0.1', port=activityport)
+      osc.bind(oscid, some_api_callback, '/some_api')
+      Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
+      self.ping()
+    
     return RootWidget()
+  
+  def ping(self):
+    osc.sendMsg('/some_api', ['ping', ], port=3000)
   
   # so that memory is kept when app is left but not killed
   #   -> does not help
