@@ -1,46 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from kivy.utils import platform
 from kivy.lib import osc
-from kivy.storage.dictstore import DictStore
+from kivy.clock import Clock
+from random import sample, randint
+from string import ascii_letters
+from time import localtime, asctime, sleep
 
-from plyer import notification
-from plyer import vibrator
+from plyer import notification, vibrator
 
-from os.path import join
-from time import time
+def ping(*args):
+  notification.notify(title = 'service', message = 'ping')
+  vibrator.vibrate(0.5)
+  osc.sendMsg(
+    '/message',
+    [''.join(sample(ascii_letters, randint(10, 20))), ],
+    port=3002)
 
-service = 3000
-
-def some_api_callback(message, *args):
-  notification.notify(title = 'WOW', message = str(message))
+def send_date():
+  osc.sendMsg('/date', [asctime(localtime()), ], port=3002)
 
 if __name__ == '__main__':
   osc.init()
-  oscid = osc.listen(ipAddr='127.0.0.1', port=service)
-  osc.bind(oscid, some_api_callback, '/some_api')
-  
+  oscid = osc.listen(ipAddr='0.0.0.0', port=3000)
+  osc.bind(oscid, ping, '/ping')
+  Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
   while True:
     osc.readQueue(oscid)
-    sleep(.1)
-  
-  notification.notify(title = 'first', message = 'notification')
-  vibrator.vibrate(0.5)
-  data_dir = getattr(self, 'user_data_dir')
-  store = DictStore(join(data_dir, 'notification.dat'))
-  LS = None
-  if store.exists('last_stamp'):
-	  LS = store.get('last_stamp')['sec']
-	else:
-	  LS = str(time())
-	  store.put('last_stamp', sec = LS)
-    ttl = 'title'
-    msg = 'last notif: ' + LS
-    notification.notify(title = ttl, message = msg)
-    vibrator.vibrate(0.5)
-    time.sleep(30)
-
-
-
-
-
+    sleep(5)

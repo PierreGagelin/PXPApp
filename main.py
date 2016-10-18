@@ -37,7 +37,7 @@ except:
 from kivy.clock import Clock, mainthread
 from kivy.lib import osc
 import threading
-from time import time
+from time import time, sleep
 
 import paramiko, socket
 
@@ -624,20 +624,20 @@ def some_api_callback(message, *args):
 class PXPApp(App):
   def build(self):
     # tests storage
-    if platform == 'linux':
-      from kivy.storage.dictstore import DictStore
-      from os.path import join
-      data_dir = getattr(self, 'user_data_dir')
-      store = DictStore(join(data_dir, 'notification.dat'))
-      LS = None
-      if store.exists('last_stamp'):
-        LS = store.get('last_stamp')['sec']
-      else:
-        LS = str(time())
-        store.put('last_stamp', sec = LS)
-      ttl = 'title'
-      msg = 'last notif: ' + str(LS)
-      notification.notify(title = ttl, message = msg)
+    from kivy.storage.dictstore import DictStore
+    from os.path import join
+    data_dir = getattr(self, 'user_data_dir')
+    store = DictStore(join(data_dir, 'notification.dat'))
+    LS = None
+    if store.exists('last_stamp'):
+      LS = store.get('last_stamp')['sec']
+    else:
+      LS = str(time())
+      store.put('last_stamp', sec = LS)
+    ttl = 'title'
+    msg = 'last notif: ' + str(LS)
+    #notification.notify(title = ttl, message = msg)
+    
     # launches the notification service
     if platform == 'android':
       from android import AndroidService
@@ -646,24 +646,32 @@ class PXPApp(App):
         'world')
       service.start('useless')
       self.service = service
-      
-      activityport = 3001
-      osc.init()
-      oscid = osc.listen(ipAddr='127.0.0.1', port=activityport)
-      osc.bind(oscid, some_api_callback, '/some_api')
-      Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
-      self.ping()
+    
+    # test communication with the service
+    osc.init()
+    oscid = osc.listen(ipAddr = '0.0.0.0', port = 3002)
+    osc.bind(oscid, self.display_message, '/message')
+    osc.bind(oscid, self.date, '/date')
+    Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
+    for i in range(1, 5):
+      self.send()
+      sleep(5)
     
     return RootWidget()
   
-  def ping(self):
-    osc.sendMsg('/some_api', ['ping', ], port=3000)
-  
   # so that memory is kept when app is left but not killed
-  #   -> does not help
-  # FIXME: app freezes when set to background
   def on_pause():
     return True
+
+  def send(self, *args):
+    osc.sendMsg('/ping', [], port=3000)
+
+  def display_message(self, message, *args):
+    print 'message: ', message[2]
+
+  def date(self, message, *args):
+    notification.notify(title = 'app', message = 'received date')
+    vibrator.vibrate(0.5)
 
 if __name__ == '__main__':
   PXPApp().run()
