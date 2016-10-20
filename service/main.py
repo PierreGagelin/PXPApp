@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from kivy.utils import platform
 from kivy.lib import osc
 from kivy.storage.dictstore import DictStore
 
@@ -10,18 +9,20 @@ from plyer import vibrator
 from os.path import join
 from time import time
 
-service = 3000
 
 def some_api_callback(message, *args):
   notification.notify(title = 'WOW', message = str(message))
 
 def verify_notification(message, *args):
-  
+  pass
+
+def get_path(message, *args):
+  pass
 
 if __name__ == '__main__':
   osc.init()
-  oscid = osc.listen(ipAddr='127.0.0.1', port=service)
-  osc.bind(oscid, some_api_callback, '/some_api')
+  oscid = osc.listen(ipAddr='127.0.0.1', port=3000)
+  osc.bind(oscid, get_path, '/path')
   
   while True:
     osc.readQueue(oscid)

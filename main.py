@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import kivy
-kivy.require('1.9.1') # current kivy version
+# Project X Paris Application (PXPApp) #
+########################################
+# Multi-platform app: work on Windows, Linux, OS X, Android and iOS
+# App for the wholesalers to see products and receive notifications
 
+import kivy
+kivy.require('1.9.1')
+# to get names more easily
 from kivy.app import App
 from kivy.app import runTouchApp
-
 from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
@@ -16,37 +20,50 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image, AsyncImage
-
 from kivy.graphics import Color, Rectangle
 from kivy.graphics import BorderImage
-
 from kivy.core.window import Window
-
 from kivy.utils import platform
+from kivy.lang import Builder
+from kivy.storage.dictstore import DictStore
 
-# plyer should work on iOS but not for notification
-if platform == "android" or platform == "linux":
+# notification system
+if not platform == 'ios':
   from plyer import notification
-else:
-  notification = None
-try:
+
+# vibration
+if platform == 'android' or platform == 'ios':
   from plyer import vibrator
-except:
-  vibrator = None
 
+# Objective-C wrapper for iOS
+if platform == 'ios':
+  from pyobjus import autoclass, objc_str
+  from pyobjus.dylib_manager import load_framework, INCLUDE
+
+# TODO: remove, not used
 from kivy.clock import Clock, mainthread
-from kivy.lib import osc
 import threading
+
+# to get timestamp for the notifications
 from time import time
+from os.path import join
 
-import paramiko, socket
+# to retrieve reference and price from a product
+#   - ssh with paramiko
+#   - personnal socket server
+# socket necessary because paramiko won't work on iOS
+if not platform == 'ios':
+  import paramiko
+else:
+  import socket
 
+# for some string operations
 import string
 
+# to check wholesaler password with salt
 import hashlib
 
-from kivy.lang import Builder
-
+# most of the GUI in KV language
 design = '''
 <HomeBannerWidget>:
   orientation: 'horizontal'
@@ -304,8 +321,10 @@ design = '''
     on_press: root.validate()
 '''
 
+# builds GUI
 Builder.load_string(design)
 
+# authenticate the wholesaler with his password
 class AuthenticationWidget(BoxLayout):
   def __init__(self, **kwargs):
     super(AuthenticationWidget, self).__init__(**kwargs)
@@ -390,6 +409,9 @@ class GimmeFive(GridLayout):
   def __init__(self, **kwargs):
     super(GimmeFive, self).__init__(**kwargs)
     self.bind(minimum_height=self.setter('height'))
+  
+  def show_product(self, source_add):
+    self.parent.show_product(source_add)
 
 class StoreWidget(BodyLayout):
   def __init__(self, **kwargs):
@@ -399,35 +421,88 @@ class StoreWidget(BodyLayout):
     # loading images
     #self.load_images()
   
+  # sending message via the socket
+  def send_msg(self, cs, msg):
+    sntlen = 0
+    ttllen = len(msg)
+    while sntlen < ttllen:
+      snt = cs.send(msg[sntlen:])
+      if snt == 0:
+        raise RuntimeError('socket broken')
+      sntlen += snt
+  
+  # receiving message from the socket
+  #  - msglen is the hard part
+  def rcvd_msg(self, cs, msglen):
+    chunks = []
+    bytrcv = 0
+    while bytrcv < msglen:
+      print 'waiting a chunk...'
+      chunk = cs.recv(min(msglen - bytrcv, 2048))
+      if chunk == '':
+        raise RuntimeError('socket broken')
+      chunks.append(chunk)
+      bytrcv += len(chunk)
+    return ''.join(chunks)
+  
+  # loading images from "Home" directory
   def load_images(self):
     images = []
-    client = paramiko.client.SSHClient()
-    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-    client.connect(
-      '178.170.72.68',
-      port = 44700,
-      username = 'pierre',
-      password = self.parent.parent.parent.parent.passwd)
-    directory = 'Home/'
-    cmd = 'ls /var/www/PXPAppProducts/' + directory
-    stdin, stdout, stderr = client.exec_command(cmd)
-    for entry in stdout.readlines():
-      entry = str(entry).split('\n')[0]
-      info = entry.split('.')
-      if len(info) == 2 and info[1] == 'jpg':
-        entry = entry.split('_')[0]
-        if not(entry in images):
-          images.append(entry)
-    client.close()
+    cmd = 'ls /var/www/PXPAppProducts/Home/'
+    # filling images with data from the server
+    if not platform == "ios":
+      client = paramiko.client.SSHClient()
+      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+      client.connect(
+        '178.170.72.68',
+        port = 44700,
+        username = 'pierre',
+        password = self.parent.parent.parent.parent.passwd)
+      stdin, stdout, stderr = client.exec_command(cmd)
+      for entry in stdout.readlines():
+        entry = str(entry).split('\n')[0]
+        info = entry.split('.')
+        if len(info) == 2 and info[1] == 'jpg':
+          entry = entry.split('_')[0]
+          if not(entry in images):
+            images.append(entry)
+      client.close()
+    else:
+      # retrieve same information for iOS
+      # this is low-level networking... some things are weird:
+      #   - size does matter (e.g. cmd shall not be more than 10^256 char)
+      #   - same for command's result
+      cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
+      for entry in res.split('\n'):
+        print 'entry: ', entry
+        info = entry.split('.')
+        if len(info) == 2 and info[1] == 'jpg':
+          entry = entry.split('_')[0]
+          if not(entry in images):
+            images.append(entry)
+    # retrieving images via URL and add it to the app
     for image in images:
       image += '_0.jpg'
-      src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + image
+      src = 'http://www.projectxparis.com/PXPAppProducts/Home/'+ image
       self.add_widget(AsyncImageButton(
         source = src,
         allow_stretch = True,
         size_hint = (1, None),
         height = 200))
 
+# main widget, responsible of switching between views
+# should use Factory in order to cache memory (is slow otherwise)
 class RootWidget(BoxLayout):
   salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
   passwd = None
@@ -436,7 +511,7 @@ class RootWidget(BoxLayout):
     # authenticate the wholesaler to the app
     self.clear_widgets()
     self.authenticate()
-  
+  # authenticate the user as a wholesaler
   def authenticate(self):
     if self.passwd != None:
       HW = HomeWidget()
@@ -445,26 +520,20 @@ class RootWidget(BoxLayout):
     else:
       self.clear_widgets()
       self.add_widget(AuthenticationWidget())
-  
-  # remove the store view and show the image
-  def show_image(self, source_add):
-    self.clear_widgets()
-    pw = ProductWidget()
-    self.add_widget(pw)
-  
+  # initialize again
   def return_to_root(self):
     self.__init__()
-  
+  # show the menu
   def show_menu(self):
     self.clear_widgets()
     self.add_widget(MenuWidget())
-  
+  # show subcategories from the menu
   def show_category(self, category):
     self.clear_widgets()
     CW = CategoryWidget()
     self.add_widget(CW)
     CW.update(category)
-  
+  # show the product view, with price, reference and images
   def show_product(self, source_add):
     self.clear_widgets()
     PW = ProductWidget()
@@ -526,26 +595,76 @@ class CategoryWidget(BoxLayout):
     self.clear_widgets()
     super(CategoryWidget, self).__init__(**kwargs)
   
+  # sending message via the socket
+  def send_msg(self, cs, msg):
+    sntlen = 0
+    ttllen = len(msg)
+    while sntlen < ttllen:
+      snt = cs.send(msg[sntlen:])
+      if snt == 0:
+        raise RuntimeError('socket broken')
+      sntlen += snt
+  
+  # receiving message from the socket
+  #  - msglen is the hard part
+  def rcvd_msg(self, cs, msglen):
+    chunks = []
+    bytrcv = 0
+    while bytrcv < msglen:
+      print 'waiting a chunk...'
+      chunk = cs.recv(min(msglen - bytrcv, 2048))
+      if chunk == '':
+        raise RuntimeError('socket broken')
+      chunks.append(chunk)
+      bytrcv += len(chunk)
+    return ''.join(chunks)
+  
   def update(self, directory):
     directory += '/'
-    images = []
-    client = paramiko.client.SSHClient()
-    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-    client.connect(
-      '178.170.72.68',
-      port = 44700,
-      username = 'pierre',
-      password = self.parent.passwd)
     cmd = 'ls /var/www/PXPAppProducts/' + directory
-    stdin, stdout, stderr = client.exec_command(cmd)
-    for entry in stdout.readlines():
-      entry = str(entry).split('\n')[0]
-      info = entry.split('.')
-      if len(info) == 2 and info[1] == 'jpg':
-        entry = entry.split('_')[0]
-        if not(entry in images):
-          images.append(entry)
-    client.close()
+    images = []
+    # filling images with data from the server
+    if not platform == "ios":
+      client = paramiko.client.SSHClient()
+      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+      client.connect(
+        '178.170.72.68',
+        port = 44700,
+        username = 'pierre',
+        password = self.parent.passwd)
+      stdin, stdout, stderr = client.exec_command(cmd)
+      for entry in stdout.readlines():
+        entry = str(entry).split('\n')[0]
+        info = entry.split('.')
+        if len(info) == 2 and info[1] == 'jpg':
+          entry = entry.split('_')[0]
+          if not(entry in images):
+            images.append(entry)
+      client.close()
+    else:
+      # retrieve same information for iOS
+      # this is low-level networking... some things are weird:
+      #   - size does matter (e.g. cmd shall not be more than 10^256 char)
+      #   - same for command's result
+      cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
+      for entry in res.split('\n'):
+        print 'entry: ', entry
+        info = entry.split('.')
+        if len(info) == 2 and info[1] == 'jpg':
+          entry = entry.split('_')[0]
+          if not(entry in images):
+            images.append(entry)
     for image in images:
       image += '_0.jpg'
       src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + image
@@ -582,6 +701,30 @@ class ProductWidget(BoxLayout):
     self.clear_widgets()
     super(ProductWidget, self).__init__(**kwargs)
   
+  # sending message via the socket
+  def send_msg(self, cs, msg):
+    sntlen = 0
+    ttllen = len(msg)
+    while sntlen < ttllen:
+      snt = cs.send(msg[sntlen:])
+      if snt == 0:
+        raise RuntimeError('socket broken')
+      sntlen += snt
+  
+  # receiving message from the socket
+  #  - msglen is the hard part
+  def rcvd_msg(self, cs, msglen):
+    chunks = []
+    bytrcv = 0
+    while bytrcv < msglen:
+      print 'waiting a chunk...'
+      chunk = cs.recv(min(msglen - bytrcv, 2048))
+      if chunk == '':
+        raise RuntimeError('socket broken')
+      chunks.append(chunk)
+      bytrcv += len(chunk)
+    return ''.join(chunks)
+  
   def update(self, source_add):
     source1 = string.replace(source_add, '_0.jpg', '_1.jpg')
     source2 = string.replace(source_add, '_0.jpg', '_2.jpg')
@@ -592,24 +735,61 @@ class ProductWidget(BoxLayout):
     directory = source_add.split('/')[len(source_add.split('/'))-2]
     name = source_add.split('/')[len(source_add.split('/'))-1]
     name = name.split('_')[0]
-    client = paramiko.client.SSHClient()
-    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-    client.connect(
-      '178.170.72.68',
-      port = 44700,
-      username = 'pierre',
-      password = self.parent.passwd)
-    ref = 'cat /home/pierre/PXPAppProducts/' + directory + '/' + \
+    #TODO: when uploading modify '/Users/tjmaxgov' with '/home/pierre'
+    ref_cmd = 'cat /Users/tjmaxgov/PXPAppProducts/' + directory + '/' + \
       name + '_ref.txt'
-    price = string.replace(ref, '_ref.txt', '_price.txt')
-    stdin, stdout, stderr = client.exec_command(ref)
-    for ref in stdout.readlines():
+    price_cmd = string.replace(ref_cmd, '_ref.txt', '_price.txt')
+    if not platform == "ios":
+      client = paramiko.client.SSHClient()
+      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+      client.connect(
+        '178.170.72.68',
+        port = 44700,
+        username = 'pierre',
+        password = self.parent.passwd)
+      stdin, stdout, stderr = client.exec_command(ref_cmd)
+      for ref in stdout.readlines():
+        self.ids['product_reference'].text = 'référence : ' + \
+          str(ref).split('\n')[0]
+      stdin, stdout, stderr = client.exec_command(price_cmd)
+      for price in stdout.readlines():
+        self.ids['product_price'].text = str(price).split('\n')[0] + '€'
+      client.close()
+    else:
+      # retrieve same information for iOS
+      # this is low-level networking... some things are weird:
+      #   - size does matter (e.g. cmd shall not be more than 10^256 char)
+      #   - same for command's result
+      cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(ref_cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, ref_cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
       self.ids['product_reference'].text = 'référence : ' + \
-        str(ref).split('\n')[0]
-    stdin, stdout, stderr = client.exec_command(price)
-    for price in stdout.readlines():
-      self.ids['product_price'].text = str(price).split('\n')[0] + '€'
-    client.close()
+        str(res).split('\n')[0]
+      cs.close()
+      # we just got the ref, now  same for the price
+      cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(price_cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, price_cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
+      self.ids['product_price'].text = str(res).split('\n')[0] + '€'
+      cs.close()
   
   def switch_image(self, source_add):
     self.ids['product_image'].source = source_add
@@ -618,26 +798,39 @@ class ProductWidget(BoxLayout):
     self.clear_widgets()
     self.parent.__init__()
 
-def some_api_callback(message, *args):
-   print 'got a message: ', message
-
 class PXPApp(App):
   def build(self):
-    # tests storage
-    if platform == 'linux':
-      from kivy.storage.dictstore import DictStore
-      from os.path import join
-      data_dir = getattr(self, 'user_data_dir')
-      store = DictStore(join(data_dir, 'notification.dat'))
-      LS = None
-      if store.exists('last_stamp'):
-        LS = store.get('last_stamp')['sec']
-      else:
-        LS = str(time())
-        store.put('last_stamp', sec = LS)
-      ttl = 'title'
-      msg = 'last notif: ' + str(LS)
+    # deal with the timestamp for notifications
+    data_dir = getattr(self, 'user_data_dir')
+    store = DictStore(join(data_dir, 'notification.dat'))
+    LS = None
+    if store.exists('last_stamp'):
+      LS = store.get('last_stamp')['sec']
+    else:
+      LS = str(time())
+      store.put('last_stamp', sec = LS)
+    ttl = 'title'
+    msg = 'last notif: ' + str(LS)
+    
+    # make a notification
+    if not platform == 'ios':
       notification.notify(title = ttl, message = msg)
+    else:
+      print 'trying to make notification:'
+      print '  - title: ', ttl
+      print '  - message: ', msg
+      #FIXME: unable to load framework!
+      load_framework(INCLUDE.AppKit)
+      # get both nsalert and nsstring class
+      NSAlert = autoclass('NSAlert')
+      NSString = autoclass('NSString')
+      ns = lambda x: NSString.alloc().initWithUTF8String_(x)
+      alert = NSAlert.alloc().init()
+      alert.setMessageText_(ns('Hello world from python!'))
+      alert.addButtonWithTitle_(NSString.stringWithUTF8String_("OK"))
+      alert.addButtonWithTitle_(NSString.stringWithUTF8String_("Cancel"))
+      alert.runModal()
+    
     # launches the notification service
     if platform == 'android':
       from android import AndroidService
@@ -646,18 +839,12 @@ class PXPApp(App):
         'world')
       service.start('useless')
       self.service = service
-      
-      activityport = 3001
-      osc.init()
-      oscid = osc.listen(ipAddr='127.0.0.1', port=activityport)
-      osc.bind(oscid, some_api_callback, '/some_api')
-      Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
-      self.ping()
-    
+      self.send_path(join(data_dir, 'notification.dat'))
     return RootWidget()
   
-  def ping(self):
-    osc.sendMsg('/some_api', ['ping', ], port=3000)
+  # send the path where the timestamp file is
+  def send_path(self, path):
+    osc.sendMsg('/path', [path, ], port = 3000)
   
   # so that memory is kept when app is left but not killed
   #   -> does not help
