@@ -15,6 +15,9 @@ service = 3000
 def some_api_callback(message, *args):
   notification.notify(title = 'WOW', message = str(message))
 
+def verify_notification(message, *args):
+  
+
 if __name__ == '__main__':
   osc.init()
   oscid = osc.listen(ipAddr='127.0.0.1', port=service)
