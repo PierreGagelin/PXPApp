@@ -1,50 +1,38 @@
 # -*- coding: utf-8 -*-
 
 from kivy.lib import osc
-from kivy.storage.dictstore import DictStore
+from kivy.clock import Clock
 
-from plyer import notification
-from plyer import vibrator
+from random import sample, randint
+from string import ascii_letters
+from time import localtime, asctime, sleep
+
+from plyer import notification, vibrator
 
 from os.path import join
 from time import time
 
-
-def some_api_callback(message, *args):
-  notification.notify(title = 'WOW', message = str(message))
+received = False
 
 def verify_notification(message, *args):
   pass
 
 def get_path(message, *args):
-  pass
+  received = True
 
 if __name__ == '__main__':
   osc.init()
-  oscid = osc.listen(ipAddr='127.0.0.1', port=3000)
+  oscid = osc.listen(ipAddr='0.0.0.0', port=3000)
   osc.bind(oscid, get_path, '/path')
+  Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
   
+  # wait for the path to be received
+  while not received:
+    sleep(0.1)
+  
+  # notify path reception
+  notification.notify(title = 'service', message = 'path received')
+  
+  # main loop
   while True:
-    osc.readQueue(oscid)
-    sleep(.1)
-  
-  notification.notify(title = 'first', message = 'notification')
-  vibrator.vibrate(0.5)
-  data_dir = getattr(self, 'user_data_dir')
-  store = DictStore(join(data_dir, 'notification.dat'))
-  LS = None
-  if store.exists('last_stamp'):
-	  LS = store.get('last_stamp')['sec']
-	else:
-	  LS = str(time())
-	  store.put('last_stamp', sec = LS)
-    ttl = 'title'
-    msg = 'last notif: ' + LS
-    notification.notify(title = ttl, message = msg)
-    vibrator.vibrate(0.5)
-    time.sleep(30)
-
-
-
-
-
+    sleep(10)

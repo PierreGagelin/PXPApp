@@ -45,7 +45,7 @@ from kivy.clock import Clock, mainthread
 import threading
 
 # to get timestamp for the notifications
-from time import time
+from time import time, sleep
 from os.path import join
 
 # to retrieve reference and price from a product
@@ -800,7 +800,7 @@ class ProductWidget(BoxLayout):
 
 class PXPApp(App):
   def build(self):
-    # deal with the timestamp for notifications
+    # test storage
     data_dir = getattr(self, 'user_data_dir')
     store = DictStore(join(data_dir, 'notification.dat'))
     LS = None
@@ -831,7 +831,7 @@ class PXPApp(App):
       alert.addButtonWithTitle_(NSString.stringWithUTF8String_("Cancel"))
       alert.runModal()
     
-    # launches the notification service
+    # launch the notification service
     if platform == 'android':
       from android import AndroidService
       service = AndroidService(
@@ -847,8 +847,6 @@ class PXPApp(App):
     osc.sendMsg('/path', [path, ], port = 3000)
   
   # so that memory is kept when app is left but not killed
-  #   -> does not help
-  # FIXME: app freezes when set to background
   def on_pause():
     return True
 
