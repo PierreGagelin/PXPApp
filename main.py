@@ -6,7 +6,7 @@
 # App for the wholesalers to see products and receive notifications
 
 import kivy
-kivy.require('1.9.1')
+kivy.require('1.9.0')
 # to get names more easily
 from kivy.app import App
 from kivy.app import runTouchApp
@@ -62,6 +62,10 @@ import string
 
 # to check wholesaler password with salt
 import hashlib
+
+# communication between app and service
+if platform == 'android':
+  from kivy.lib import osc
 
 # most of the GUI in KV language
 design = '''
@@ -330,6 +334,7 @@ class AuthenticationWidget(BoxLayout):
     super(AuthenticationWidget, self).__init__(**kwargs)
   
   def validate(self):
+    app.send_path()
     if hashlib.sha256(self.ids['attempt'].text).hexdigest() == self.parent.salt:
       self.parent.passwd = self.ids['attempt'].text
       self.clear_widgets()
@@ -516,6 +521,7 @@ class RootWidget(BoxLayout):
     if self.passwd != None:
       HW = HomeWidget()
       self.add_widget(HW)
+      app.send_path()
       HW.ids['store'].load_images()
     else:
       self.clear_widgets()
@@ -800,6 +806,7 @@ class ProductWidget(BoxLayout):
 
 class PXPApp(App):
   def build(self):
+    self.received_path = False
     # test storage
     data_dir = getattr(self, 'user_data_dir')
     store = DictStore(join(data_dir, 'notification.dat'))
@@ -814,7 +821,8 @@ class PXPApp(App):
     
     # make a notification
     if not platform == 'ios':
-      notification.notify(title = ttl, message = msg)
+      print 'no notification'
+      # notification.notify(title = ttl, message = msg)
     else:
       print 'trying to make notification:'
       print '  - title: ', ttl
@@ -839,19 +847,31 @@ class PXPApp(App):
         'world')
       service.start('useless')
       self.service = service
-      self.send_path(join(data_dir, 'notification.dat'))
-    return RootWidget()
+      osc.init()
+      oscid = osc.listen(port=3002)
+      osc.bind(oscid, self.path_received, '/app-path')
+      Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
+      self.dict_path = join(data_dir, 'notification.dat')
+    
+    self.root = RootWidget()
+    return self.root
+  
+  # confirm that path has been received
+  def path_received(self, message, *args):
+    if self.root:
+      self.received_path = True
   
   # send the path where the timestamp file is
-  def send_path(self, path):
-    osc.sendMsg('/path', [path, ], port = 3000)
+  def send_path(self, *args):
+    osc.sendMsg('/service-path', ['coucou', ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause():
     return True
 
+app = PXPApp()
 if __name__ == '__main__':
-  PXPApp().run()
+  app.run()
 
 
 
