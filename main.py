@@ -40,10 +40,6 @@ if platform == 'ios':
   from pyobjus import autoclass, objc_str
   from pyobjus.dylib_manager import load_framework, INCLUDE
 
-# TODO: remove, not used
-from kivy.clock import Clock, mainthread
-import threading
-
 # to get timestamp for the notifications
 from time import time, sleep
 from os.path import join
@@ -66,6 +62,7 @@ import hashlib
 # communication between app and service
 if platform == 'android':
   from kivy.lib import osc
+  from kivy.clock import Clock
 
 # most of the GUI in KV language
 design = '''
@@ -736,8 +733,7 @@ class ProductWidget(BoxLayout):
     directory = source_add.split('/')[len(source_add.split('/'))-2]
     name = source_add.split('/')[len(source_add.split('/'))-1]
     name = name.split('_')[0]
-    #TODO: when uploading modify '/Users/tjmaxgov' with '/home/pierre'
-    ref_cmd = 'cat /Users/tjmaxgov/PXPAppProducts/' + directory + '/' + \
+    ref_cmd = 'cat /home/pierre/PXPAppProducts/' + directory + '/' + \
       name + '_ref.txt'
     price_cmd = string.replace(ref_cmd, '_ref.txt', '_price.txt')
     if not platform == "ios":
