@@ -77,13 +77,7 @@ design = '''
     size_hint: (0.1, 1)
   Image:
     source: 'empty.png'
-    size_hint: (0.4, 1)
-  PXPLogo:
-    size_hint: (0.5, 1)
-
-<PXPLogo>:
-  text: 'Project X Paris'
-  font_size: 30
+    size_hint: (0.9, 1)
 
 <AsyncImageButton>:
   size_hint_y: None
@@ -138,12 +132,14 @@ design = '''
 
 <HomeWidget>:
   orientation: 'vertical'
-  Image:
-    size_hint: (1, 0.1)
-    source: 'empty.png'
+  BodyLayout:
+    size_hint: (1, 0.2)
+    cols: 1
+    Image:
+      source: 'banner.jpg'
   HomeBannerWidget:
   ScrollView:
-    size_hint: (1, 0.8)
+    size_hint: (1, 0.7)
     BodyLayout:
       cols: 1
       size_hint_y: None
@@ -296,12 +292,14 @@ design = '''
 
 <CategoryWidget>:
   orientation: 'vertical'
-  Image:
-    size_hint: (1, 0.1)
-    source: 'empty.png'
+  BodyLayout:
+    size_hint: (1, 0.2)
+    cols: 1
+    Image:
+      source: 'banner.jpg'
   ImageBannerWidget:
   ScrollView:
-    size_hint: (1, 0.8)
+    size_hint: (1, 0.7)
     BodyLayout:
       id: category_grid
       cols: 4
@@ -342,9 +340,6 @@ class AuthenticationWidget(BoxLayout):
     else:
       self.ids['failure'].text = 'Mot de passe erroné, essayez à nouveau'
       self.ids['attempt'].text = ''
-
-class PXPLogo(Label):
-  pass
 
 class ReturnButton(ButtonBehavior, Image):
   def __init__(self, **kwargs):
