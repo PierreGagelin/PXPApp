@@ -505,7 +505,7 @@ class StoreWidget(BodyLayout):
 # should use Factory in order to cache memory (is slow otherwise)
 class RootWidget(BoxLayout):
   salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
-  passwd = None
+  passwd = ''
   def __init__(self, **kwargs):
     super(RootWidget, self).__init__(**kwargs)
     # authenticate the wholesaler to the app
@@ -858,10 +858,12 @@ class PXPApp(App):
   
   # send the path where the timestamp file is
   def send_path(self, *args):
-    osc.sendMsg('/service-path', ['coucou', ], port=3000)
+    data_dir = getattr(self, 'user_data_dir')
+    path = join(data_dir, 'notification.dat')
+    osc.sendMsg('/service-path', [path, ], port=3000)
   
   # so that memory is kept when app is left but not killed
-  def on_pause():
+  def on_pause(self):
     return True
 
 app = PXPApp()

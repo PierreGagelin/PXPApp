@@ -14,7 +14,7 @@ def send_msg():
   osc.sendMsg('/app-path', ['coucou', ], port=3002)
 
 def get_path(*args):
-  notification.notify(title = 'service', message = 'got message')
+  notification.notify(title = 'service', message = str(args[0][2]))
   vibrator.vibrate(0.5)
   osc.sendMsg('/app-path', ['coucoudepath', ], port = 3002)
 
