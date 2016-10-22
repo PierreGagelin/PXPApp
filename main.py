@@ -35,11 +35,6 @@ if not platform == 'ios':
 if platform == 'android' or platform == 'ios':
   from plyer import vibrator
 
-# Objective-C wrapper for iOS
-if platform == 'ios':
-  from pyobjus import autoclass, objc_str
-  from pyobjus.dylib_manager import load_framework, INCLUDE
-
 # to get timestamp for the notifications
 from time import time, sleep
 from os.path import join
@@ -810,26 +805,6 @@ class PXPApp(App):
     ttl = 'title'
     msg = 'last notif: ' + str(LS)
     
-    # make a notification
-    if not platform == 'ios':
-      print 'no notification'
-      # notification.notify(title = ttl, message = msg)
-    else:
-      print 'trying to make notification:'
-      print '  - title: ', ttl
-      print '  - message: ', msg
-      #FIXME: unable to load framework!
-      load_framework(INCLUDE.AppKit)
-      # get both nsalert and nsstring class
-      NSAlert = autoclass('NSAlert')
-      NSString = autoclass('NSString')
-      ns = lambda x: NSString.alloc().initWithUTF8String_(x)
-      alert = NSAlert.alloc().init()
-      alert.setMessageText_(ns('Hello world from python!'))
-      alert.addButtonWithTitle_(NSString.stringWithUTF8String_("OK"))
-      alert.addButtonWithTitle_(NSString.stringWithUTF8String_("Cancel"))
-      alert.runModal()
-    
     # launch the notification service
     if platform == 'android':
       from android import AndroidService
@@ -854,9 +829,10 @@ class PXPApp(App):
   
   # send the path where the timestamp file is
   def send_path(self, *args):
-    data_dir = getattr(self, 'user_data_dir')
-    path = join(data_dir, 'notification.dat')
-    osc.sendMsg('/service-path', [path, ], port=3000)
+    if platform == 'android':
+      data_dir = getattr(self, 'user_data_dir')
+      path = join(data_dir, 'notification.dat')
+      osc.sendMsg('/service-path', [path, ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
