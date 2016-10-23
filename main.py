@@ -497,7 +497,7 @@ class StoreWidget(BodyLayout):
 # should use Factory in order to cache memory (is slow otherwise)
 class RootWidget(BoxLayout):
   salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
-  passwd = ''
+  passwd = None
   def __init__(self, **kwargs):
     super(RootWidget, self).__init__(**kwargs)
     # authenticate the wholesaler to the app
@@ -505,7 +505,7 @@ class RootWidget(BoxLayout):
     self.authenticate()
   # authenticate the user as a wholesaler
   def authenticate(self):
-    if self.passwd != None:
+    if self.passwd:
       HW = HomeWidget()
       self.add_widget(HW)
       app.send_path()
