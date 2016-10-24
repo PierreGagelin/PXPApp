@@ -325,10 +325,10 @@ class AuthenticationWidget(BoxLayout):
   
   def validate(self):
     if hashlib.sha256(self.ids['attempt'].text).hexdigest() == self.parent.salt:
-      self.parent.passwd = self.ids['attempt'].text
+      app.root.passwd = self.ids['attempt'].text
       app.send_path()
-      self.clear_widgets()
-      self.parent.__clear__()
+      # self.clear_widgets()
+      app.root.__clear__()
     else:
       self.ids['failure'].text = 'Mot de passe erroné, essayez à nouveau'
       self.ids['attempt'].text = ''
@@ -449,7 +449,7 @@ class StoreWidget(BodyLayout):
         '178.170.72.68',
         port = 44700,
         username = 'pierre',
-        password = self.parent.parent.parent.parent.passwd)
+        password = app.root.passwd)
       stdin, stdout, stderr = client.exec_command(cmd)
       for entry in stdout.readlines():
         entry = str(entry).split('\n')[0]
@@ -750,6 +750,8 @@ class ProductWidget(BoxLayout):
     self.clear_widgets()
     self.parent.__clear__()
 
+from kivy.core.window import Window
+
 # main widget, responsible of switching between views
 # should use Factory in order to cache memory (is slow otherwise)
 class RootWidget(BoxLayout):
@@ -758,25 +760,32 @@ class RootWidget(BoxLayout):
   def __init__(self, **kwargs):
     super(RootWidget, self).__init__(**kwargs)
     self.homewidget = HomeWidget()
+    self.add_widget(self.homewidget)
+    self.clean_widgets()
     # authenticate the wholesaler to the app
-    self.clear_widgets()
     self.authenticate()
   
   def __clear__(self):
-    self.clear_widgets()
+    self.clean_widgets()
     self.authenticate()
+  
+  # attempt to reduce size of widgets to 0 instead of deleting them
+  def clean_widgets(self):
+    for child in self.children:
+      child.size = (0, 0)
   
   # authenticate the user as a wholesaler
   def authenticate(self):
     if self.passwd:
       # HW = HomeWidget()
-      self.add_widget(self.homewidget)
+      # self.add_widget(self.homewidget)
+      self.homewidget.size = Window.size
       app.send_path()
-      # app.send_passwd(self.passwd)
       self.homewidget.ids['store'].load_images()
     else:
-      self.clear_widgets()
+      self.clean_widgets()
       self.add_widget(AuthenticationWidget())
+  
   # initialize again
   def return_to_root(self):
     self.__clear__()
