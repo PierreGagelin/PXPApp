@@ -324,11 +324,11 @@ class AuthenticationWidget(BoxLayout):
     super(AuthenticationWidget, self).__init__(**kwargs)
   
   def validate(self):
-    app.send_path()
     if hashlib.sha256(self.ids['attempt'].text).hexdigest() == self.parent.salt:
       self.parent.passwd = self.ids['attempt'].text
+      app.send_path()
       self.clear_widgets()
-      self.parent.__init__()
+      self.parent.__clear__()
     else:
       self.ids['failure'].text = 'Mot de passe erroné, essayez à nouveau'
       self.ids['attempt'].text = ''
@@ -493,46 +493,6 @@ class StoreWidget(BodyLayout):
         size_hint = (1, None),
         height = 200))
 
-# main widget, responsible of switching between views
-# should use Factory in order to cache memory (is slow otherwise)
-class RootWidget(BoxLayout):
-  salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
-  passwd = None
-  def __init__(self, **kwargs):
-    super(RootWidget, self).__init__(**kwargs)
-    # authenticate the wholesaler to the app
-    self.clear_widgets()
-    self.authenticate()
-  # authenticate the user as a wholesaler
-  def authenticate(self):
-    if self.passwd:
-      HW = HomeWidget()
-      self.add_widget(HW)
-      app.send_path()
-      HW.ids['store'].load_images()
-    else:
-      self.clear_widgets()
-      self.add_widget(AuthenticationWidget())
-  # initialize again
-  def return_to_root(self):
-    self.__init__()
-  # show the menu
-  def show_menu(self):
-    self.clear_widgets()
-    self.add_widget(MenuWidget())
-  # show subcategories from the menu
-  def show_category(self, category):
-    self.clear_widgets()
-    CW = CategoryWidget()
-    self.add_widget(CW)
-    CW.update(category)
-  # show the product view, with price, reference and images
-  def show_product(self, source_add):
-    self.clear_widgets()
-    PW = ProductWidget()
-    self.add_widget(PW)
-    PW.update(source_add)
-
 class ProductImage(ButtonBehavior, AsyncImage):
   def __init__(self, **kwargs):
     super(ProductImage, self).__init__(**kwargs)
@@ -555,7 +515,7 @@ class MenuWidget(BoxLayout):
   def return_to_root(self):
     self.clear_widgets()
     self.is_categories = False
-    self.parent.__init__()
+    self.parent.__clear__()
   
   def show_categories(self):
     # clear widgets
@@ -788,7 +748,54 @@ class ProductWidget(BoxLayout):
   
   def return_to_root(self):
     self.clear_widgets()
-    self.parent.__init__()
+    self.parent.__clear__()
+
+# main widget, responsible of switching between views
+# should use Factory in order to cache memory (is slow otherwise)
+class RootWidget(BoxLayout):
+  salt = '97fde7b312f0d79dbadaeb0c63fd270c9a168ea4a21f060d8cb9bf9000df905d'
+  passwd = None
+  def __init__(self, **kwargs):
+    super(RootWidget, self).__init__(**kwargs)
+    self.homewidget = HomeWidget()
+    # authenticate the wholesaler to the app
+    self.clear_widgets()
+    self.authenticate()
+  
+  def __clear__(self):
+    self.clear_widgets()
+    self.authenticate()
+  
+  # authenticate the user as a wholesaler
+  def authenticate(self):
+    if self.passwd:
+      # HW = HomeWidget()
+      self.add_widget(self.homewidget)
+      app.send_path()
+      # app.send_passwd(self.passwd)
+      self.homewidget.ids['store'].load_images()
+    else:
+      self.clear_widgets()
+      self.add_widget(AuthenticationWidget())
+  # initialize again
+  def return_to_root(self):
+    self.__clear__()
+  # show the menu
+  def show_menu(self):
+    self.clear_widgets()
+    self.add_widget(MenuWidget())
+  # show subcategories from the menu
+  def show_category(self, category):
+    self.clear_widgets()
+    CW = CategoryWidget()
+    self.add_widget(CW)
+    CW.update(category)
+  # show the product view, with price, reference and images
+  def show_product(self, source_add):
+    self.clear_widgets()
+    PW = ProductWidget()
+    self.add_widget(PW)
+    PW.update(source_add)
 
 class PXPApp(App):
   def build(self):
@@ -832,7 +839,12 @@ class PXPApp(App):
     if platform == 'android':
       data_dir = getattr(self, 'user_data_dir')
       path = join(data_dir, 'notification.dat')
-      osc.sendMsg('/service-path', [path, ], port=3000)
+      osc.sendMsg('/service-path', [path, self.root.passwd, ], port=3000)
+  
+  # send the password to the service
+  # def send_passwd(self, passwd, *args):
+  #  if platform == 'android':
+  #    osc.sendMsg('/service-passwd', [passwd, ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
