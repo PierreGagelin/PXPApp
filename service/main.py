@@ -19,17 +19,10 @@ passwd = ''
 def send_msg():
   osc.sendMsg('/app-path', ['coucou', ], port=3002)
 
-'''
-def get_passwd(*args):
-  passwd = str(args[0][2])
-  notification.notify(title = 'service', message = 'passwd: ' + str(args[0][2]))
-  vibrator.vibrate(0.5)
-'''
-
 def get_path(*args):
   notification_path = str(args[0][2])
   passwd = str(args[0][3])
-  notification.notify(title = 'service', message = 'message: ' + str(args[0]))
+  # notification.notify(title = 'service', message = 'message: ' + passwd)
   vibrator.vibrate(0.5)
   osc.sendMsg('/app-path', ['coucoudepath', ], port = 3002)
 
@@ -52,8 +45,6 @@ if __name__ == '__main__':
   osc.init()
   oscid = osc.listen(ipAddr='0.0.0.0', port=3000)
   osc.bind(oscid, get_path, '/service-path')
-  # osc.bind(oscid, get_passwd, '/service-passwd')
-  # Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
   
   # main loop
   while True:

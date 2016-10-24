@@ -443,6 +443,7 @@ class StoreWidget(BodyLayout):
     cmd = 'ls /var/www/PXPAppProducts/Home/'
     # filling images with data from the server
     if not platform == "ios":
+      deb = time()
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -459,6 +460,8 @@ class StoreWidget(BodyLayout):
           if not(entry in images):
             images.append(entry)
       client.close()
+      end = time()
+      notification.notify(title = 'execution time', message = str(end - deb))
     else:
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
@@ -499,21 +502,21 @@ class ProductImage(ButtonBehavior, AsyncImage):
 
 class HomeWidget(BoxLayout):
   def __init__(self, **kwargs):
-    self.clear_widgets()
+    # self.clear_widgets()
     super(HomeWidget, self).__init__(**kwargs)
   
   def show_product(self, product_source):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.parent.show_product(product_source)
 
 class MenuWidget(BoxLayout):
   def __init__(self, **kwargs):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.is_categories = False
     super(MenuWidget, self).__init__(**kwargs)
   
   def return_to_root(self):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.is_categories = False
     self.parent.__clear__()
   
@@ -536,7 +539,7 @@ class MenuWidget(BoxLayout):
       self.children[0].children[0].add_widget(ContactButton())
   
   def show_category(self, category):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.is_categories = False
     self.parent.show_category(category)
   
@@ -545,7 +548,7 @@ class MenuWidget(BoxLayout):
 
 class CategoryWidget(BoxLayout):
   def __init__(self, **kwargs):
-    self.clear_widgets()
+    # self.clear_widgets()
     super(CategoryWidget, self).__init__(**kwargs)
   
   # sending message via the socket
@@ -628,7 +631,7 @@ class CategoryWidget(BoxLayout):
         height = 200))
   
   def return_to_root(self):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.parent.return_to_root()
 
 class CategoriesButton(Button):
@@ -651,7 +654,7 @@ class ContactButton(Button):
 
 class ProductWidget(BoxLayout):
   def __init__(self, **kwargs):
-    self.clear_widgets()
+    # self.clear_widgets()
     super(ProductWidget, self).__init__(**kwargs)
   
   # sending message via the socket
@@ -747,7 +750,7 @@ class ProductWidget(BoxLayout):
     self.ids['product_image'].source = source_add
   
   def return_to_root(self):
-    self.clear_widgets()
+    # self.clear_widgets()
     self.parent.__clear__()
 
 from kivy.core.window import Window
@@ -761,6 +764,8 @@ class RootWidget(BoxLayout):
     super(RootWidget, self).__init__(**kwargs)
     self.homewidget = HomeWidget()
     self.add_widget(self.homewidget)
+    self.authenticationwidget = AuthenticationWidget()
+    self.add_widget(self.authenticationwidget)
     self.clean_widgets()
     # authenticate the wholesaler to the app
     self.authenticate()
@@ -769,39 +774,57 @@ class RootWidget(BoxLayout):
     self.clean_widgets()
     self.authenticate()
   
+  # recursively travels through the widget tree to hide widgets
+  def hide_widgets(self, widget):
+    for child in widget.children:
+      self.hide_widgets(child)
+    widget.opacity = 0
+    widget.disabled = True
+  
   # attempt to reduce size of widgets to 0 instead of deleting them
+  # need to do it recursively so made it in hide_widget
   def clean_widgets(self):
     for child in self.children:
-      child.size = (0, 0)
+      child.opacity = 0
+      child.disabled = True
+    #self.hide_widgets(self)
+  
+  def show_widget(self, widget):
+    widget.opacity = 1
+    widget.disabled = False
   
   # authenticate the user as a wholesaler
   def authenticate(self):
     if self.passwd:
       # HW = HomeWidget()
       # self.add_widget(self.homewidget)
-      self.homewidget.size = Window.size
+      self.show_widget(self.homewidget)
       app.send_path()
       self.homewidget.ids['store'].load_images()
     else:
       self.clean_widgets()
-      self.add_widget(AuthenticationWidget())
+      # self.add_widget(self.authenticationwidget)
+      self.show_widget(self.authenticationwidget)
   
   # initialize again
   def return_to_root(self):
     self.__clear__()
+  
   # show the menu
   def show_menu(self):
-    self.clear_widgets()
+    self.clean_widgets()
     self.add_widget(MenuWidget())
+  
   # show subcategories from the menu
   def show_category(self, category):
-    self.clear_widgets()
+    self.clean_widgets()
     CW = CategoryWidget()
     self.add_widget(CW)
     CW.update(category)
+  
   # show the product view, with price, reference and images
   def show_product(self, source_add):
-    self.clear_widgets()
+    self.clean_widgets()
     PW = ProductWidget()
     self.add_widget(PW)
     PW.update(source_add)
@@ -849,11 +872,6 @@ class PXPApp(App):
       data_dir = getattr(self, 'user_data_dir')
       path = join(data_dir, 'notification.dat')
       osc.sendMsg('/service-path', [path, self.root.passwd, ], port=3000)
-  
-  # send the password to the service
-  # def send_passwd(self, passwd, *args):
-  #  if platform == 'android':
-  #    osc.sendMsg('/service-passwd', [passwd, ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
