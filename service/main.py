@@ -22,14 +22,14 @@ def send_msg():
 '''
 def get_passwd(*args):
   passwd = str(args[0][2])
-  notification.notify(title = 'service', message = 'passwd: ', str(args[0][2]))
+  notification.notify(title = 'service', message = 'passwd: ' + str(args[0][2]))
   vibrator.vibrate(0.5)
 '''
 
 def get_path(*args):
   notification_path = str(args[0][2])
   passwd = str(args[0][3])
-  notification.notify(title = 'service', message = 'message: ', str(args[0]))
+  notification.notify(title = 'service', message = 'message: ' + str(args[0]))
   vibrator.vibrate(0.5)
   osc.sendMsg('/app-path', ['coucoudepath', ], port = 3002)
 
