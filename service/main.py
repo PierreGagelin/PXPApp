@@ -11,12 +11,11 @@ from plyer import notification, vibrator
 from os.path import join
 from time import time
 
-# it seems a service has no access to the network :/
 import paramiko
 
-class Info():
+class PXPAppService():
   def __init__(self):
-    self.notification_path = ''
+    self.path = ''
     self.passwd = ''
     self.directories = [
       'Home',
@@ -33,43 +32,54 @@ class Info():
       'Accessories',
       'NewIn',
       'Sales']
+    self.images_names = {}
   
   def get_info(self, *args):
     if str(args[0][2]) == 'path and passwd':
-      self.notification_path = str(args[0][3])
+      self.path = str(args[0][3])
       self.passwd = str(args[0][4])
       vibrator.vibrate(0.5)
+  
+  # execute a command on the server
+  # time consuming operation, should be done the least
+  def exec_command(self, cmd):
+    client = paramiko.client.SSHClient()
+    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+    client.connect(
+      '178.170.72.68',
+      port = 44700,
+      username = 'pierre',
+      password = self.passwd)
+    stdin, stdout, stderr = client.exec_command(cmd)
+    output = []
+    for line in stdout.readlines():
+      output.append(str(line))
+    client.close()
+    return output
+  
+  def update_names(self):
+    directory = '/var/www/PXPAppProducts/'
+    print 'not implemented yet'
+  
+  def update_infos(self):
+    directory = '/home/pierre/PXPAppProducts/'
+    print 'not implemented yet'
+  
+  def update_notif(self):
+    print 'not implemented yet'
+  
+  def update_all(self):
+    self.update_names()
+    self.update_infos()
+    self.update_notif()
 
 def send_msg(message):
   if message == 'passwd':
     osc.sendMsg('/app-path', ['not implemented loul', ], port=3002)
 
-def get_path(*args):
-  if str(args[0][2]) == 'path and passwd':
-    notification_path = str(args[0][3])
-    passwd = str(args[0][4])
-    vibrator.vibrate(0.5)
-    return [notification_path, passwd]
-
-# execute a command on the server
-def exec_command(cmd, passwd):
-  client = paramiko.client.SSHClient()
-  client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-  client.connect(
-    '178.170.72.68',
-    port = 44700,
-    username = 'pierre',
-    password = passwd)
-  stdin, stdout, stderr = client.exec_command(cmd)
-  output = []
-  for line in stdout.readlines():
-    output.append(str(line))
-  client.close()
-  return output
-
 # get the application time stamp from last notification
-def get_last_stamp(notification_path):
-  store = DictStore(notification_path)
+def get_last_stamp(path):
+  store = DictStore(path)
   LS = None
   if store.exists('last_stamp'):
     LS = store.get('last_stamp')['sec']
@@ -83,24 +93,27 @@ def get_server_stamp(LS):
   return 'not implemented yet'
 
 if __name__ == '__main__':
-  # global information object
-  info = Info()
+  
+  pxp = PXPAppService()
   
   osc.init()
   oscid = osc.listen(ipAddr='0.0.0.0', port=3000)
-  osc.bind(oscid, info.get_info, '/service-path')
+  osc.bind(oscid, pxp.get_info, '/service-info')
+  
+  # waiting for the password and notification path to be sent
+  while not (pxp.path and pxp.passwd):
+    osc.readQueue(oscid)
+    sleep(.1)
   
   # main loop
+  # get the time-critical content up-to-date for the app
+  #   - images names
+  #   - references and prices
+  # sleep value should be set to 300 for release not to consume too much bandwidth
   while True:
-    # waiting for the password and notification path to be sent
-    if not (info.notification_path and info.passwd):
-      osc.readQueue(oscid)
-      sleep(.1)
-    else:
-      LS = get_last_stamp(info.notification_path)
-      SS = get_server_stamp(LS)
-      ls = exec_command('ls', info.passwd)
-      sleep(60)
+    notification.notify(title='service', message='starts to update like a bitch')
+    pxp.update_all()
+    sleep(10)
 
 
 

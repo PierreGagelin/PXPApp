@@ -326,7 +326,7 @@ class AuthenticationWidget(BoxLayout):
   def validate(self):
     if hashlib.sha256(self.ids['attempt'].text).hexdigest() == self.parent.salt:
       self.parent.passwd = self.ids['attempt'].text
-      app.send_path()
+      app.send_info()
       self.clear_widgets()
       self.parent.__clear__()
     else:
@@ -826,11 +826,11 @@ class PXPApp(App):
       notification.notify(title = 'info app', message = str(args[0][2]))
   
   # send the path where the timestamp file is
-  def send_path(self, *args):
+  def send_info(self, *args):
     if platform == 'android':
       data_dir = getattr(self, 'user_data_dir')
       path = join(data_dir, 'notification.dat')
-      osc.sendMsg('/service-path', ['path and passwd', path, self.root.passwd, ], port=3000)
+      osc.sendMsg('/service-info', ['path and passwd', path, self.root.passwd, ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
@@ -839,7 +839,6 @@ class PXPApp(App):
 app = PXPApp()
 if __name__ == '__main__':
   app.run()
-
 
 
 
