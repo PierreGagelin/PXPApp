@@ -757,11 +757,11 @@ class RootWidget(BoxLayout):
   passwd = None
   def __init__(self, **kwargs):
     super(RootWidget, self).__init__(**kwargs)
-    self.homewidget = HomeWidget()
     # authenticate the wholesaler to the app
     self.clear_widgets()
     self.authenticate()
   
+  # clear widgets and starts again with authentication
   def __clear__(self):
     self.clear_widgets()
     self.authenticate()
@@ -769,28 +769,30 @@ class RootWidget(BoxLayout):
   # authenticate the user as a wholesaler
   def authenticate(self):
     if self.passwd:
-      # HW = HomeWidget()
-      self.add_widget(self.homewidget)
-      app.send_path()
-      # app.send_passwd(self.passwd)
-      self.homewidget.ids['store'].load_images()
+      HW = HomeWidget()
+      self.add_widget(HW)
+      HW.ids['store'].load_images()
     else:
       self.clear_widgets()
       self.add_widget(AuthenticationWidget())
+  
   # initialize again
   def return_to_root(self):
     self.__clear__()
+  
   # show the menu
   def show_menu(self):
     self.clear_widgets()
     self.add_widget(MenuWidget())
+  
   # show subcategories from the menu
   def show_category(self, category):
     self.clear_widgets()
     CW = CategoryWidget()
     self.add_widget(CW)
     CW.update(category)
-  # show the product view, with price, reference and images
+  
+  # show the product view
   def show_product(self, source_add):
     self.clear_widgets()
     PW = ProductWidget()
@@ -800,19 +802,9 @@ class RootWidget(BoxLayout):
 class PXPApp(App):
   def build(self):
     self.received_path = False
-    # test storage
-    data_dir = getattr(self, 'user_data_dir')
-    store = DictStore(join(data_dir, 'notification.dat'))
-    LS = None
-    if store.exists('last_stamp'):
-      LS = store.get('last_stamp')['sec']
-    else:
-      LS = str(time())
-      store.put('last_stamp', sec = LS)
-    ttl = 'title'
-    msg = 'last notif: ' + str(LS)
     
     # launch the notification service
+    # setup the OSC communication
     if platform == 'android':
       from android import AndroidService
       service = AndroidService(
@@ -824,27 +816,21 @@ class PXPApp(App):
       oscid = osc.listen(port=3002)
       osc.bind(oscid, self.path_received, '/app-path')
       Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
-      self.dict_path = join(data_dir, 'notification.dat')
     
     self.root = RootWidget()
     return self.root
   
-  # confirm that path has been received
-  def path_received(self, message, *args):
-    if self.root:
-      self.received_path = True
+  # reception of service information
+  def path_received(self, *args):
+    if not args[0][2] == '':
+      notification.notify(title = 'info app', message = str(args[0][2]))
   
   # send the path where the timestamp file is
   def send_path(self, *args):
     if platform == 'android':
       data_dir = getattr(self, 'user_data_dir')
       path = join(data_dir, 'notification.dat')
-      osc.sendMsg('/service-path', [path, self.root.passwd, ], port=3000)
-  
-  # send the password to the service
-  # def send_passwd(self, passwd, *args):
-  #  if platform == 'android':
-  #    osc.sendMsg('/service-passwd', [passwd, ], port=3000)
+      osc.sendMsg('/service-path', ['path and passwd', path, self.root.passwd, ], port=3000)
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
