@@ -17,21 +17,7 @@ class PXPAppService():
   def __init__(self):
     self.path = ''
     self.passwd = ''
-    self.directories = [
-      'Home',
-      'Tees',
-      'SweatNHoodies',
-      'Shirts',
-      'Jackets',
-      'Coats',
-      'Sweaters',
-      'Denim',
-      'Jogging',
-      'Pants',
-      'Sneakers',
-      'Accessories',
-      'NewIn',
-      'Sales']
+    self.directories = []
     self.images_names = {}
   
   def get_info(self, *args):
@@ -58,8 +44,18 @@ class PXPAppService():
     return output
   
   def update_names(self):
-    directory = '/var/www/PXPAppProducts/'
-    print 'not implemented yet'
+    output = self.exec_command('ls -R /var/www/PXPAppProducts/')
+    current_dir = ''
+    for entry in output:
+      #print entry
+      pathname = entry.split('/')
+      image_name = entry.split('.')
+      if len(pathname) == 5 and pathname[4] != ':':
+        current_dir = pathname[4].split(':')[0]
+        self.directories.append(current_dir)
+        self.images_names[current_dir] = []
+      elif len(image_name) == 2 and image_name[1] == 'jpg':
+        self.images_names[current_dir].append(entry)
   
   def update_infos(self):
     directory = '/home/pierre/PXPAppProducts/'
