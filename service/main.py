@@ -26,6 +26,14 @@ class PXPAppService():
       self.passwd = str(args[0][4])
       vibrator.vibrate(0.5)
   
+  def send_info(self):
+    for dir in self.images_names.keys():
+      data = [dir]
+      for image in self.images_names[dir]:
+        data.append(image)
+      osc.sendMsg('/app-info', data, port=3002)
+      sleep(1)
+  
   # execute a command on the server
   # time consuming operation, should be done the least
   def exec_command(self, cmd):
@@ -39,7 +47,7 @@ class PXPAppService():
     stdin, stdout, stderr = client.exec_command(cmd)
     output = []
     for line in stdout.readlines():
-      output.append(str(line))
+      output.append(str(line).split('\n')[0])
     client.close()
     return output
   
@@ -47,7 +55,6 @@ class PXPAppService():
     output = self.exec_command('ls -R /var/www/PXPAppProducts/')
     current_dir = ''
     for entry in output:
-      #print entry
       pathname = entry.split('/')
       image_name = entry.split('.')
       if len(pathname) == 5 and pathname[4] != ':':
@@ -68,10 +75,6 @@ class PXPAppService():
     self.update_names()
     self.update_infos()
     self.update_notif()
-
-def send_msg(message):
-  if message == 'passwd':
-    osc.sendMsg('/app-path', ['not implemented loul', ], port=3002)
 
 # get the application time stamp from last notification
 def get_last_stamp(path):
@@ -107,9 +110,9 @@ if __name__ == '__main__':
   #   - references and prices
   # sleep value should be set to 300 for release not to consume too much bandwidth
   while True:
-    notification.notify(title='service', message='starts to update like a bitch')
     pxp.update_all()
-    sleep(10)
+    pxp.send_info()
+    sleep(1)
 
 
 

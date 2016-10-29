@@ -443,6 +443,7 @@ class StoreWidget(BodyLayout):
     cmd = 'ls /var/www/PXPAppProducts/Home/'
     # filling images with data from the server
     if not platform == "ios":
+     if False:
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -578,6 +579,7 @@ class CategoryWidget(BoxLayout):
     images = []
     # filling images with data from the server
     if not platform == "ios":
+     if False:
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -692,6 +694,7 @@ class ProductWidget(BoxLayout):
       name + '_ref.txt'
     price_cmd = string.replace(ref_cmd, '_ref.txt', '_price.txt')
     if not platform == "ios":
+     if False:
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -814,16 +817,15 @@ class PXPApp(App):
       self.service = service
       osc.init()
       oscid = osc.listen(port=3002)
-      osc.bind(oscid, self.path_received, '/app-path')
+      osc.bind(oscid, self.get_info, '/app-info')
       Clock.schedule_interval(lambda *x: osc.readQueue(oscid), 0)
     
     self.root = RootWidget()
     return self.root
   
   # reception of service information
-  def path_received(self, *args):
-    if not args[0][2] == '':
-      notification.notify(title = 'info app', message = str(args[0][2]))
+  def get_info(self, *args):
+    notification.notify(title = 'info app', message = str(args))
   
   # send the path where the timestamp file is
   def send_info(self, *args):
