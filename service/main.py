@@ -19,6 +19,7 @@ class PXPAppService():
     self.passwd = ''
     self.directories = []
     self.images_names = {}
+    self.images_infos = {}
   
   def get_info(self, *args):
     if str(args[0][2]) == 'path and passwd':
@@ -32,7 +33,6 @@ class PXPAppService():
       for image in self.images_names[dir]:
         data.append(image)
       osc.sendMsg('/app-info', data, port=3002)
-      sleep(1)
   
   # execute a command on the server
   # time consuming operation, should be done the least
@@ -112,7 +112,7 @@ if __name__ == '__main__':
   while True:
     pxp.update_all()
     pxp.send_info()
-    sleep(1)
+    sleep(10)
 
 
 

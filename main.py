@@ -442,8 +442,14 @@ class StoreWidget(BodyLayout):
     images = []
     cmd = 'ls /var/www/PXPAppProducts/Home/'
     # filling images with data from the server
-    if not platform == "ios":
-     if False:
+    if platform == 'android':
+      # updating image with app.images_names['Home']
+      if app.images_names.has_key('Home'):
+        for image in app.images_names['Home']:
+          image = image.split('_')[0]
+          if not image in images:
+            images.append(image)
+    elif not platform == "ios":
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -574,12 +580,17 @@ class CategoryWidget(BoxLayout):
     return ''.join(chunks)
   
   def update(self, directory):
-    directory += '/'
-    cmd = 'ls /var/www/PXPAppProducts/' + directory
+    cmd = 'ls /var/www/PXPAppProducts/' + directory + '/'
     images = []
     # filling images with data from the server
-    if not platform == "ios":
-     if False:
+    if platform == 'android':
+      # updating image with app.images_names[directory]
+      if app.images_names.has_key(directory):
+        for image in app.images_names[directory]:
+          image = image.split('_')[0]
+          if not image in images:
+            images.append(image)
+    elif not platform == 'ios':
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -622,7 +633,7 @@ class CategoryWidget(BoxLayout):
             images.append(entry)
     for image in images:
       image += '_0.jpg'
-      src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + image
+      src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + '/' + image
       self.add_widget(AsyncImageButton(
         source = src,
         allow_stretch = True,
@@ -710,6 +721,9 @@ class ProductWidget(BoxLayout):
       for price in stdout.readlines():
         self.ids['product_price'].text = str(price).split('\n')[0] + '€'
       client.close()
+     else:
+      # we update informations according to app.images_infos
+      print 'not implemented yet'
     else:
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
@@ -804,7 +818,7 @@ class RootWidget(BoxLayout):
 
 class PXPApp(App):
   def build(self):
-    self.received_path = False
+    self.images_names = {}
     
     # launch the notification service
     # setup the OSC communication
@@ -825,7 +839,10 @@ class PXPApp(App):
   
   # reception of service information
   def get_info(self, *args):
-    notification.notify(title = 'info app', message = str(args))
+    if args[0][2] != '':
+      self.images_names[args[0][2]] = []
+      for image in args[0][3:]:
+        self.images_names[args[0][2]].append(image)
   
   # send the path where the timestamp file is
   def send_info(self, *args):
