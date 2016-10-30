@@ -26,11 +26,18 @@ class PXPAppService():
       self.passwd = str(args[0][4])
       vibrator.vibrate(0.5)
   
-  def send_info(self):
+  def send_names(self):
     for dir in self.images_names.keys():
-      data = [dir]
+      data = ['names', dir]
       for image in self.images_names[dir]:
         data.append(image)
+      osc.sendMsg('/app-info', data, port=3002)
+  
+  def send_infos(self):
+    for dir in self.images_infos.keys():
+      data = ['infos', dir]
+      for dic in self.images_infos[dir]:
+        data.append('name:'+dic['name']+';type:'+dic['type']+';value:'+dic['value'])
       osc.sendMsg('/app-info', data, port=3002)
   
   # execute a command on the server
@@ -63,7 +70,7 @@ class PXPAppService():
         self.images_names[current_dir].append(entry)
   
   def update_infos(self):
-    output = exec_command('ls -R /home/pierre/PXPAppProducts/')
+    output = self.exec_command('ls -R /home/pierre/PXPAppProducts/')
     current_dir = ''
     for entry in output:
       pathname = entry.split('/')
@@ -73,8 +80,12 @@ class PXPAppService():
         self.images_infos[current_dir] = []
       elif len(image_info) == 2 and image_info[1] == 'txt':
         info = image_info[0].split('_')
-        dic = {'name': info[0], 'type': info[1], 'value': info[2]}
-        self.images_infos[current_dir].append(dic)
+        if len(info) == 3:
+          dic = {'name': info[0], 'type': info[1], 'value': info[2]}
+          self.images_infos[current_dir].append(dic)
+        else:
+          # consider adding a log file to list issues
+          print 'corrupted entry found!'
   
   def update_notif(self):
     print 'not implemented yet'
@@ -119,7 +130,8 @@ if __name__ == '__main__':
   # sleep value should be set to 300 for release not to consume too much bandwidth
   while True:
     pxp.update_all()
-    pxp.send_info()
+    pxp.send_names()
+    pxp.send_infos()
     sleep(10)
 
 

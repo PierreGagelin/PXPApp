@@ -819,6 +819,7 @@ class RootWidget(BoxLayout):
 class PXPApp(App):
   def build(self):
     self.images_names = {}
+    self.images_infos = {}
     
     # launch the notification service
     # setup the OSC communication
@@ -839,10 +840,17 @@ class PXPApp(App):
   
   # reception of service information
   def get_info(self, *args):
-    if args[0][2] != '':
-      self.images_names[args[0][2]] = []
-      for image in args[0][3:]:
-        self.images_names[args[0][2]].append(image)
+    if args[0][2] == 'names':
+      self.images_names[args[0][3]] = []
+      for image in args[0][4:]:
+        self.images_names[args[0][3]].append(image)
+    elif args[0][2] == 'infos':
+      self.images_infos[args[0][3]] = []
+      for entry in args[0][4:]:
+        dic = {}
+        for key in entry.split(';'):
+          dic[key.split(':')[0]] = key.split(':')[1]
+        self.images_infos[args[0][3]].append(dic)
   
   # send the path where the timestamp file is
   def send_info(self, *args):
