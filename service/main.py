@@ -17,8 +17,8 @@ class PXPAppService():
   def __init__(self):
     self.path = ''
     self.passwd = ''
-    self.directories = []
     self.images_names = {}
+    self.images_info = {}
   
   def get_info(self, *args):
     if str(args[0][2]) == 'path and passwd':
@@ -59,14 +59,23 @@ class PXPAppService():
       image_name = entry.split('.')
       if len(pathname) == 5 and pathname[4] != ':':
         current_dir = pathname[4].split(':')[0]
-        self.directories.append(current_dir)
         self.images_names[current_dir] = []
       elif len(image_name) == 2 and image_name[1] == 'jpg':
         self.images_names[current_dir].append(entry)
   
   def update_infos(self):
-    directory = '/home/pierre/PXPAppProducts/'
-    print 'not implemented yet'
+    output = exec_command('ls -R /home/pierre/PXPAppProducts/')
+    current_dir = ''
+    for entry in output:
+      pathname = entry.split('/')
+      image_info = entry.split('.')
+      if len(pathname) == 5 and pathname[4] != ':':
+        current_dir = pathname[4].split(':')[0]
+        self.images_info[current_dir] = []
+      elif len(image_info) == 2 and image_info[1] == 'txt':
+        info = image_info[0].split('_')
+        dic = {'name': info[0], 'type': info[1], 'value': info[2]}
+        self.images_info[current_dir].append(dic)
   
   def update_notif(self):
     print 'not implemented yet'
