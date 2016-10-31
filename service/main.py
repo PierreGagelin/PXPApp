@@ -19,6 +19,7 @@ class PXPAppService():
     self.passwd = ''
     self.images_names = {}
     self.images_infos = {}
+    self.LS = 0
   
   def get_info(self, *args):
     if str(args[0][2]) == 'path and passwd':
@@ -96,27 +97,35 @@ class PXPAppService():
     print '...infos updated'
   
   def update_notif(self):
-    print 'not implemented yet'
+    print 'begin to update notif...'
+    # the command is ordered by modification time so only the first output is interessant
+    name = self.exec_command('ls -c /home/pierre/notifications')[0]
+    stamp = self.exec_command('stat -c %Y /home/pierre/notifications/' + name)
+    print 'name: ', name
+    print 'stamp: ', stamp
+    notif = {'name': name, 'stamp': stamp}
+    print 'most recent notif: ', notif
+    if notif['stamp'] > self.LS:
+      print 'gonna set_last_stamp and send notification'
+    print '...notif updated'
   
   def update_all(self):
     self.update_names()
     self.update_infos()
     self.update_notif()
-
-# get the application time stamp from last notification
-def get_last_stamp(path):
-  store = DictStore(path)
-  LS = None
-  if store.exists('last_stamp'):
-    LS = store.get('last_stamp')['sec']
-  else:
-    LS = str(time())
-    store.put('last_stamp', sec = LS)
-  return LS
-
-# retrieve the list of stamps from the server
-def get_server_stamp(LS):
-  return 'not implemented yet'
+  
+  def init_last_stamp(self):
+    store = DictStore(self.path)
+    if store.exists('last_stamp'):
+      self.LS = store.get('last_stamp')['sec']
+    else:
+      self.LS = int(time())
+      store.put('last_stamp', sec = self.LS)
+  
+  def set_last_stamp(self, stamp):
+    store = DictStore(self.path)
+    store.put('last_stamp', sec = stamp)
+    self.LS = stamp
 
 if __name__ == '__main__':
   
@@ -130,6 +139,9 @@ if __name__ == '__main__':
   while not (pxp.path and pxp.passwd):
     osc.readQueue(oscid)
     sleep(.1)
+  
+  # initialize the stamp value
+  pxp.init_last_stamp()
   
   # main loop
   # get the time-critical content up-to-date for the app
