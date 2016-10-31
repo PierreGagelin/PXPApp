@@ -704,7 +704,14 @@ class ProductWidget(BoxLayout):
     ref_cmd = 'cat /home/pierre/PXPAppProducts/' + directory + '/' + \
       name + '_ref.txt'
     price_cmd = string.replace(ref_cmd, '_ref.txt', '_price.txt')
-    if not platform == "ios":
+    if platform == 'android':
+      if app.images_infos.has_key(directory):
+        for dic in app.images_infos[directory]:
+          if dic['name'] == name and dic['type'] == 'price':
+            self.ids['product_price'].text = dic['value']
+          elif dic['name'] == name and dic['type'] == 'ref':
+            self.ids['product_reference'].text = dic['value']
+    elif not platform == 'ios':
      if False:
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())

@@ -27,18 +27,22 @@ class PXPAppService():
       vibrator.vibrate(0.5)
   
   def send_names(self):
+    print 'begin to send names...'
     for dir in self.images_names.keys():
       data = ['names', dir]
       for image in self.images_names[dir]:
         data.append(image)
       osc.sendMsg('/app-info', data, port=3002)
+    print '...names sent'
   
   def send_infos(self):
+    print 'begin to send infos...'
     for dir in self.images_infos.keys():
       data = ['infos', dir]
       for dic in self.images_infos[dir]:
         data.append('name:'+dic['name']+';type:'+dic['type']+';value:'+dic['value'])
       osc.sendMsg('/app-info', data, port=3002)
+    print '...infos sent'
   
   # execute a command on the server
   # time consuming operation, should be done the least
@@ -58,6 +62,7 @@ class PXPAppService():
     return output
   
   def update_names(self):
+    print 'begin to update names...'
     output = self.exec_command('ls -R /var/www/PXPAppProducts/')
     current_dir = ''
     for entry in output:
@@ -68,8 +73,10 @@ class PXPAppService():
         self.images_names[current_dir] = []
       elif len(image_name) == 2 and image_name[1] == 'jpg':
         self.images_names[current_dir].append(entry)
+    print '...names updated'
   
   def update_infos(self):
+    print 'begin to update infos...'
     output = self.exec_command('ls -R /home/pierre/PXPAppProducts/')
     current_dir = ''
     for entry in output:
@@ -86,6 +93,7 @@ class PXPAppService():
         else:
           # consider adding a log file to list issues
           print 'corrupted entry found!'
+    print '...infos updated'
   
   def update_notif(self):
     print 'not implemented yet'
