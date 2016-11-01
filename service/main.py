@@ -100,13 +100,30 @@ class PXPAppService():
     print 'begin to update notif...'
     # the command is ordered by modification time so only the first output is interessant
     name = self.exec_command('ls -c /home/pierre/notifications')[0]
-    stamp = self.exec_command('stat -c %Y /home/pierre/notifications/' + name)
+    stamp = self.exec_command('stat -c %Y /home/pierre/notifications/' + name)[0]
     print 'name: ', name
     print 'stamp: ', stamp
-    notif = {'name': name, 'stamp': stamp}
-    print 'most recent notif: ', notif
+    notif = {'name': name, 'stamp': int(stamp)}
+    print 'last notif stamp: ', self.LS
     if notif['stamp'] > self.LS:
-      print 'gonna set_last_stamp and send notification'
+      print 'found new notification!'
+      content = self.exec_command('cat /home/pierre/notifications/' + name)
+      Title = ''
+      Message = ''
+      for line in content:
+        print 'line from file: ', line
+        line_s = line.split(':')
+        if line_s[0] == 'title':
+          print 'update title'
+          Title = line_s[1]
+        elif line_s[0] == 'message':
+          print 'update message'
+          Message = line_s[1]
+      if Title and Message:
+        print 'notify'
+        notification.notify(title = Title, message = Message)
+        vibrator.vibrate(0.5)
+        self.set_last_stamp(notif['stamp'])
     print '...notif updated'
   
   def update_all(self):
@@ -117,7 +134,7 @@ class PXPAppService():
   def init_last_stamp(self):
     store = DictStore(self.path)
     if store.exists('last_stamp'):
-      self.LS = store.get('last_stamp')['sec']
+      self.LS = int(float(store.get('last_stamp')['sec']))
     else:
       self.LS = int(time())
       store.put('last_stamp', sec = self.LS)
