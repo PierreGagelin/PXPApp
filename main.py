@@ -283,6 +283,7 @@ design = '''
     id: product_reference
     size_hint: (1, 0.05)
     text: 'reference not loaded yet'
+    markup: True
   AsyncImage:
     id: product_image
     allow_stretch: True
@@ -303,6 +304,7 @@ design = '''
     id: product_price
     size_hint: (1, 0.05)
     text: 'price not loaded yet'
+    markup: True
 
 <CategoryWidget>:
   orientation: 'vertical'
@@ -756,9 +758,9 @@ class ProductWidget(BoxLayout):
       if app.images_infos.has_key(directory):
         for dic in app.images_infos[directory]:
           if dic['name'] == name and dic['type'] == 'price':
-            self.ids['product_price'].text = dic['value'] + '€'
+            self.ids['product_price'].text = '[color=000000]'+dic['value'] + '€[/color]'
           elif dic['name'] == name and dic['type'] == 'ref':
-            self.ids['product_reference'].text = dic['value']
+            self.ids['product_reference'].text = '[color=000000]'+dic['value']+'[/color]'
     elif not platform == 'ios':
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
