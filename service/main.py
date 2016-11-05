@@ -144,6 +144,10 @@ class PXPAppService():
     store.put('last_stamp', sec = stamp)
     self.LS = stamp
 
+#XXX: we could retrieve the launch argument from the app like
+#import os
+#arg = os.getenv('PYTHON_SERVICE_ARGUMENT')
+
 if __name__ == '__main__':
   
   pxp = PXPAppService()

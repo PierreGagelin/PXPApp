@@ -2,7 +2,7 @@
 
 # Project X Paris Application (PXPApp) #
 ########################################
-# Multi-platform app: work on Windows, Linux, OS X, Android and iOS
+# Multi-platform app: theoretically works on Windows, Linux, OS X, Android and iOS
 # App for the wholesalers to see products and receive notifications
 
 import kivy
@@ -123,6 +123,13 @@ design = '''
   size_hint: (1, None)
 
 <HomeWidget>:
+  canvas.before:
+    Color:
+      rgba: 1, 1, 1, 1
+    Rectangle:
+      # self here refers to the widget i.e FloatLayout
+      pos: self.pos
+      size: self.size
   orientation: 'vertical'
   BodyLayout:
     size_hint: (1, 0.2)
@@ -142,6 +149,13 @@ design = '''
 
 <MenuWidget>:
   orientation: 'vertical'
+  canvas.before:
+    Color:
+      rgba: 1, 1, 1, 1
+    Rectangle:
+      # self here refers to the widget i.e FloatLayout
+      pos: self.pos
+      size: self.size
   ImageBannerWidget:
   ScrollView:
     size_hint: (1, 0.9)
@@ -257,6 +271,13 @@ design = '''
 
 <ProductWidget>:
   orientation: 'vertical'
+  canvas.before:
+    Color:
+      rgba: 1, 1, 1, 1
+    Rectangle:
+      # self here refers to the widget i.e FloatLayout
+      pos: self.pos
+      size: self.size
   ImageBannerWidget:
   Label:
     id: product_reference
@@ -264,6 +285,7 @@ design = '''
     text: 'reference not loaded yet'
   AsyncImage:
     id: product_image
+    allow_stretch: True
     size_hint: (1, 0.6)
   BoxLayout:
     orientation: 'horizontal'
@@ -284,6 +306,13 @@ design = '''
 
 <CategoryWidget>:
   orientation: 'vertical'
+  canvas.before:
+    Color:
+      rgba: 1, 1, 1, 1
+    Rectangle:
+      # self here refers to the widget i.e FloatLayout
+      pos: self.pos
+      size: self.size
   BodyLayout:
     size_hint: (1, 0.2)
     cols: 1
@@ -300,19 +329,38 @@ design = '''
 
 <AuthenticationWidget>:
   orientation: 'vertical'
+  canvas.before:
+    Color:
+      rgba: 1, 1, 1, 1
+    Rectangle:
+      # self here refers to the widget i.e FloatLayout
+      pos: self.pos
+      size: self.size
   Label:
     id: failure
+    markup: True
+    size_hint: (1, 0.1)
+  Image:
+    size_hint: (1, 0.2)
+    source: 'banner.jpg'
+    allow_stretch: True
   BoxLayout:
+    size_hint: (1, 0.1)
     orientation: 'horizontal'
     Label:
-      text: 'Mot de passe : '
+      text: '[color=000000]Mot de passe : [/color]'
+      markup: True
     TextInput:
       id: attempt
       password: True
       text: ''
   Button:
+    size_hint: (1, 0.2)
     text: 'Connecter'
     on_press: root.validate()
+  Image:
+    size_hint: (1, 0.4)
+    source: 'empty.png'
 '''
 
 # builds GUI
@@ -330,7 +378,7 @@ class AuthenticationWidget(BoxLayout):
       self.clear_widgets()
       self.parent.__clear__()
     else:
-      self.ids['failure'].text = 'Mot de passe erroné, essayez à nouveau'
+      self.ids['failure'].text ='[color=000000]Mot de passe erroné, essayez à nouveau[/color]'
       self.ids['attempt'].text = ''
 
 class ReturnButton(ButtonBehavior, Image):
@@ -708,11 +756,10 @@ class ProductWidget(BoxLayout):
       if app.images_infos.has_key(directory):
         for dic in app.images_infos[directory]:
           if dic['name'] == name and dic['type'] == 'price':
-            self.ids['product_price'].text = dic['value']
+            self.ids['product_price'].text = dic['value'] + '€'
           elif dic['name'] == name and dic['type'] == 'ref':
             self.ids['product_reference'].text = dic['value']
     elif not platform == 'ios':
-     if False:
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
       client.connect(
@@ -728,9 +775,6 @@ class ProductWidget(BoxLayout):
       for price in stdout.readlines():
         self.ids['product_price'].text = str(price).split('\n')[0] + '€'
       client.close()
-     else:
-      # we update informations according to app.images_infos
-      print 'not implemented yet'
     else:
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
@@ -833,9 +877,9 @@ class PXPApp(App):
     if platform == 'android':
       from android import AndroidService
       service = AndroidService(
-        'hello',
-        'world')
-      service.start('useless')
+        'ProjectXParis',
+        "Rend l'application d'être plus réactive !")
+      service.start('not used in my code')
       self.service = service
       osc.init()
       oscid = osc.listen(port=3002)
