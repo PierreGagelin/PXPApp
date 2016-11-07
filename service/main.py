@@ -170,9 +170,11 @@ if __name__ == '__main__':
   #   - references and prices
   # sleep value should be set to 300 for release not to consume too much bandwidth
   while True:
-    pxp.update_all()
+    pxp.update_names()
     pxp.send_names()
+    pxp.update_infos()
     pxp.send_infos()
+    pxp.update_notif()
     sleep(10)
 
 

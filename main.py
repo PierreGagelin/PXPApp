@@ -105,7 +105,7 @@ design = '''
   AsyncImageButton:
     source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_m.jpg'
     allow_stretch: True
-    height: 500
+    height: 800
   BoxLayout:
     orientation: 'vertical'
     AsyncImageButton:
@@ -118,7 +118,7 @@ design = '''
       size_hint: (1, 0.5)
 
 <StoreWidget>:
-  cols: 4
+  cols: 2
   spacing: [2, 4]
   size_hint: (1, None)
 
@@ -548,7 +548,7 @@ class StoreWidget(BodyLayout):
         source = src,
         allow_stretch = True,
         size_hint = (1, None),
-        height = 200))
+        height = 600))
 
 class ProductImage(ButtonBehavior, AsyncImage):
   def __init__(self, **kwargs):
@@ -688,7 +688,7 @@ class CategoryWidget(BoxLayout):
         source = src,
         allow_stretch = True,
         size_hint = (1, None),
-        height = 200))
+        height = 600))
   
   def return_to_root(self):
     self.clear_widgets()
@@ -829,16 +829,19 @@ class RootWidget(BoxLayout):
     super(RootWidget, self).__init__(**kwargs)
     # authenticate the wholesaler to the app
     self.clear_widgets()
-    self.authenticate()
+    self.authenticate(0)
   
   # clear widgets and starts again with authentication
   def __clear__(self):
     self.clear_widgets()
-    self.authenticate()
+    self.authenticate(0)
   
   # authenticate the user as a wholesaler
-  def authenticate(self):
+  def authenticate(self, dt):
     if self.passwd:
+      if not app.images_names.has_key('Home'):
+        Clock.schedule_once(self.authenticate, 0.1)
+      self.clear_widgets()
       HW = HomeWidget()
       self.add_widget(HW)
       HW.ids['store'].load_images()
@@ -880,7 +883,7 @@ class PXPApp(App):
       from android import AndroidService
       service = AndroidService(
         'ProjectXParis',
-        "Rend l'application d'être plus réactive !")
+        "Rend l'application plus réactive !")
       service.start('not used in my code')
       self.service = service
       osc.init()
