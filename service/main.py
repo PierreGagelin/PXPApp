@@ -28,43 +28,56 @@ class PXPAppService():
       vibrator.vibrate(0.5)
   
   def send_names(self):
-    print 'begin to send names...'
+    if not self.images_names:
+      return
+    #print 'begin to send names...'
     for dir in self.images_names.keys():
       data = ['names', dir]
       for image in self.images_names[dir]:
         data.append(image)
       osc.sendMsg('/app-info', data, port=3002)
-    print '...names sent'
+    #print '...names sent'
   
   def send_infos(self):
-    print 'begin to send infos...'
+    if not self.images_infos:
+      return
+    #print 'begin to send infos...'
     for dir in self.images_infos.keys():
       data = ['infos', dir]
       for dic in self.images_infos[dir]:
         data.append('name:'+dic['name']+';type:'+dic['type']+';value:'+dic['value'])
       osc.sendMsg('/app-info', data, port=3002)
-    print '...infos sent'
+    #print '...infos sent'
   
   # execute a command on the server
   # time consuming operation, should be done the least
   def exec_command(self, cmd):
     client = paramiko.client.SSHClient()
-    client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-    client.connect(
-      '178.170.72.68',
-      port = 44700,
-      username = 'pierre',
-      password = self.passwd)
-    stdin, stdout, stderr = client.exec_command(cmd)
-    output = []
-    for line in stdout.readlines():
-      output.append(str(line).split('\n')[0])
-    client.close()
-    return output
+    try:
+      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+      client.connect(
+        '178.170.72.68',
+        port = 44700,
+        username = 'pierre',
+        password = self.passwd)
+      stdin, stdout, stderr = client.exec_command(cmd)
+      output = []
+      for line in stdout.readlines():
+        output.append(str(line).split('\n')[0])
+      client.close()
+      return output
+    except:
+      notification.notify(
+        title="Connexion indisponible",
+        message="Requise pour utiliser l'application")
+      client.close()
+      return False
   
   def update_names(self):
-    print 'begin to update names...'
+    #print 'begin to update names...'
     output = self.exec_command('ls -R /var/www/PXPAppProducts/')
+    if not output:
+      return
     current_dir = ''
     for entry in output:
       pathname = entry.split('/')
@@ -74,11 +87,13 @@ class PXPAppService():
         self.images_names[current_dir] = []
       elif len(image_name) == 2 and image_name[1] == 'jpg':
         self.images_names[current_dir].append(entry)
-    print '...names updated'
+    #print '...names updated'
   
   def update_infos(self):
-    print 'begin to update infos...'
+    #print 'begin to update infos...'
     output = self.exec_command('ls -R /home/pierre/PXPAppProducts/')
+    if not output:
+      return
     current_dir = ''
     for entry in output:
       pathname = entry.split('/')
@@ -94,37 +109,45 @@ class PXPAppService():
         else:
           # consider adding a log file to list issues
           print 'corrupted entry found!'
-    print '...infos updated'
+    #print '...infos updated'
   
   def update_notif(self):
-    print 'begin to update notif...'
+    #print 'begin to update notif...'
     # the command is ordered by modification time so only the first output is interessant
-    name = self.exec_command('ls -c /home/pierre/notifications')[0]
-    stamp = self.exec_command('stat -c %Y /home/pierre/notifications/' + name)[0]
-    print 'name: ', name
-    print 'stamp: ', stamp
+    resn = self.exec_command('ls -c /home/pierre/notifications')
+    if not resn:
+      return
+    name = resn[0]
+    ress = self.exec_command('stat -c %Y /home/pierre/notifications/' + name)
+    if not ress:
+      return
+    stamp = ress[0]
+    #print 'name: ', name
+    #print 'stamp: ', stamp
     notif = {'name': name, 'stamp': int(stamp)}
     print 'last notif stamp: ', self.LS
     if notif['stamp'] > self.LS:
-      print 'found new notification!'
+      #print 'found new notification!'
       content = self.exec_command('cat /home/pierre/notifications/' + name)
+      if not content:
+        return
       Title = ''
       Message = ''
       for line in content:
-        print 'line from file: ', line
+        #print 'line from file: ', line
         line_s = line.split(':')
         if line_s[0] == 'title':
-          print 'update title'
+          #print 'update title'
           Title = line_s[1]
         elif line_s[0] == 'message':
-          print 'update message'
+          #print 'update message'
           Message = line_s[1]
       if Title and Message:
-        print 'notify'
+        #print 'notify'
         notification.notify(title = Title, message = Message)
         vibrator.vibrate(0.5)
         self.set_last_stamp(notif['stamp'])
-    print '...notif updated'
+    #print '...notif updated'
   
   def update_all(self):
     self.update_names()

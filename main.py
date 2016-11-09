@@ -281,16 +281,16 @@ design = '''
   ImageBannerWidget:
   Label:
     id: product_reference
-    size_hint: (1, 0.05)
+    size_hint: (1, 0.1)
     text: 'reference not loaded yet'
     markup: True
   AsyncImage:
     id: product_image
     allow_stretch: True
-    size_hint: (1, 0.6)
+    size_hint: (1, 0.45)
   BoxLayout:
     orientation: 'horizontal'
-    size_hint: (1, 0.2)
+    size_hint: (1, 0.15)
     ProductImage:
       id: product_image0
       on_press: root.switch_image(self.source)
@@ -302,8 +302,13 @@ design = '''
       on_press: root.switch_image(self.source)
   Label:
     id: product_price
-    size_hint: (1, 0.05)
+    size_hint: (1, 0.1)
     text: 'price not loaded yet'
+    markup: True
+  Label:
+    id: product_packaging
+    size_hint: (1, 0.1)
+    text: 'packaging not loaded yet'
     markup: True
 
 <CategoryWidget>:
@@ -758,9 +763,14 @@ class ProductWidget(BoxLayout):
       if app.images_infos.has_key(directory):
         for dic in app.images_infos[directory]:
           if dic['name'] == name and dic['type'] == 'price':
-            self.ids['product_price'].text = '[color=000000]'+dic['value'] + '€[/color]'
+            self.ids['product_price'].text = '[color=000000]prix : ' + \
+              dic['value'] + '€[/color]'
           elif dic['name'] == name and dic['type'] == 'ref':
-            self.ids['product_reference'].text = '[color=000000]'+dic['value']+'[/color]'
+            self.ids['product_reference'].text = '[color=000000]reference : ' + \
+              dic['value'] + '[/color]'
+          elif dic['name'] == name and dic['type'] == 'pkg':
+            self.ids['product_packaging'].text = '[color=000000]' + \
+              dic['value'] + '[/color]'
     elif not platform == 'ios':
       client = paramiko.client.SSHClient()
       client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
@@ -840,7 +850,7 @@ class RootWidget(BoxLayout):
   def authenticate(self, dt):
     if self.passwd:
       if not app.images_names.has_key('Home'):
-        Clock.schedule_once(self.authenticate, 0.1)
+        Clock.schedule_once(self.authenticate, 0.5)
       self.clear_widgets()
       HW = HomeWidget()
       self.add_widget(HW)
