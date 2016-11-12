@@ -32,7 +32,7 @@ if not platform == 'ios':
   from plyer import notification
 
 # vibration
-if platform == 'android' or platform == 'ios':
+if platform == 'android' :
   from plyer import vibrator
 
 # to get timestamp for the notifications
@@ -57,7 +57,7 @@ import hashlib
 # communication between app and service
 if platform == 'android':
   from kivy.lib import osc
-  from kivy.clock import Clock
+from kivy.clock import Clock
 
 # most of the GUI in KV language
 design = '''
@@ -501,54 +501,41 @@ class StoreWidget(BodyLayout):
     images = []
     cmd = 'ls /var/www/PXPAppProducts/Home/'
     # filling images with data from the server
-    if platform == 'android':
+    if platform in ['android', 'ios']:
       # updating image with app.images_names['Home']
       if app.images_names.has_key('Home'):
         for image in app.images_names['Home']:
           image = image.split('_')[0]
           if not image in images:
             images.append(image)
-    elif not platform == "ios":
-      client = paramiko.client.SSHClient()
-      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-      client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.parent.parent.parent.passwd)
-      stdin, stdout, stderr = client.exec_command(cmd)
-      for entry in stdout.readlines():
-        entry = str(entry).split('\n')[0]
-        info = entry.split('.')
-        if len(info) == 2 and info[1] == 'jpg':
-          entry = entry.split('_')[0]
-          if not(entry in images):
-            images.append(entry)
-      client.close()
-    else:
+    elif platform == 'ios':
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
       #   - size does matter (e.g. cmd shall not be more than 10^256 char)
       #   - same for command's result
       cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      cs.connect(('127.0.0.1', 2016))
-      cmdlen = len(cmd)
-      if len(str(cmdlen)) > 256:
-        print 'load_images: error: command too long'
-        return
-      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
-      self.send_msg(cs, socket_cmd_size)
-      self.send_msg(cs, cmd)
-      res_size = self.rcvd_msg(cs, 256)
-      reslen = int(res_size)
-      res = self.rcvd_msg(cs, reslen)
-      for entry in res.split('\n'):
-        print 'entry: ', entry
-        info = entry.split('.')
-        if len(info) == 2 and info[1] == 'jpg':
-          entry = entry.split('_')[0]
-          if not(entry in images):
-            images.append(entry)
+      try:
+        cs.connect(('127.0.0.1', 2016))
+        cmdlen = len(cmd)
+        if len(str(cmdlen)) > 256:
+          print 'load_images: error: command too long'
+          return
+        socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+        self.send_msg(cs, socket_cmd_size)
+        self.send_msg(cs, cmd)
+        res_size = self.rcvd_msg(cs, 256)
+        reslen = int(res_size)
+        res = self.rcvd_msg(cs, reslen)
+        for entry in res.split('\n'):
+          info = entry.split('.')
+          if len(info) == 2 and info[1] == 'jpg':
+            entry = entry.split('_')[0]
+            if not(entry in images):
+              images.append(entry)
+      except:
+        print 'Error: unable to use server'
+      cs.close()
+      
     # retrieving images via URL and add it to the app
     for image in images:
       image += '_0.jpg'
@@ -642,54 +629,41 @@ class CategoryWidget(BoxLayout):
     cmd = 'ls /var/www/PXPAppProducts/' + directory + '/'
     images = []
     # filling images with data from the server
-    if platform == 'android':
+    if platform in ['android', 'ios']:
       # updating image with app.images_names[directory]
       if app.images_names.has_key(directory):
         for image in app.images_names[directory]:
           image = image.split('_')[0]
           if not image in images:
             images.append(image)
-    elif not platform == 'ios':
-      client = paramiko.client.SSHClient()
-      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-      client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.passwd)
-      stdin, stdout, stderr = client.exec_command(cmd)
-      for entry in stdout.readlines():
-        entry = str(entry).split('\n')[0]
-        info = entry.split('.')
-        if len(info) == 2 and info[1] == 'jpg':
-          entry = entry.split('_')[0]
-          if not(entry in images):
-            images.append(entry)
-      client.close()
-    else:
+    elif platform == 'ios':
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
       #   - size does matter (e.g. cmd shall not be more than 10^256 char)
       #   - same for command's result
       cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      cs.connect(('127.0.0.1', 2016))
-      cmdlen = len(cmd)
-      if len(str(cmdlen)) > 256:
-        print 'load_images: error: command too long'
-        return
-      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
-      self.send_msg(cs, socket_cmd_size)
-      self.send_msg(cs, cmd)
-      res_size = self.rcvd_msg(cs, 256)
-      reslen = int(res_size)
-      res = self.rcvd_msg(cs, reslen)
-      for entry in res.split('\n'):
-        print 'entry: ', entry
-        info = entry.split('.')
-        if len(info) == 2 and info[1] == 'jpg':
-          entry = entry.split('_')[0]
-          if not(entry in images):
-            images.append(entry)
+      try:
+        cs.connect(('127.0.0.1', 2016))
+        cmdlen = len(cmd)
+        if len(str(cmdlen)) > 256:
+          print 'load_images: error: command too long'
+          return
+        socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+        self.send_msg(cs, socket_cmd_size)
+        self.send_msg(cs, cmd)
+        res_size = self.rcvd_msg(cs, 256)
+        reslen = int(res_size)
+        res = self.rcvd_msg(cs, reslen)
+        for entry in res.split('\n'):
+          info = entry.split('.')
+          if len(info) == 2 and info[1] == 'jpg':
+            entry = entry.split('_')[0]
+            if not(entry in images):
+              images.append(entry)
+      except:
+        print 'Error: unable to use server'
+      cs.close()
+    
     for image in images:
       image += '_0.jpg'
       src = 'http://www.projectxparis.com/PXPAppProducts/'+ directory + '/' + image
@@ -763,7 +737,7 @@ class ProductWidget(BoxLayout):
     ref_cmd = 'cat /home/pierre/PXPAppProducts/' + directory + '/' + \
       name + '_ref.txt'
     price_cmd = string.replace(ref_cmd, '_ref.txt', '_price.txt')
-    if platform == 'android':
+    if platform in ['android', 'ios']:
       if app.images_infos.has_key(directory):
         for dic in app.images_infos[directory]:
           if dic['name'] == name and dic['type'] == 'price':
@@ -775,56 +749,46 @@ class ProductWidget(BoxLayout):
           elif dic['name'] == name and dic['type'] == 'pkg':
             self.ids['product_packaging'].text = '[color=000000]' + \
               dic['value'] + '[/color]'
-    elif not platform == 'ios':
-      client = paramiko.client.SSHClient()
-      client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-      client.connect(
-        '178.170.72.68',
-        port = 44700,
-        username = 'pierre',
-        password = self.parent.passwd)
-      stdin, stdout, stderr = client.exec_command(ref_cmd)
-      for ref in stdout.readlines():
-        self.ids['product_reference'].text = 'référence : ' + \
-          str(ref).split('\n')[0]
-      stdin, stdout, stderr = client.exec_command(price_cmd)
-      for price in stdout.readlines():
-        self.ids['product_price'].text = str(price).split('\n')[0] + '€'
-      client.close()
-    else:
+    elif platform == 'ios':
       # retrieve same information for iOS
       # this is low-level networking... some things are weird:
       #   - size does matter (e.g. cmd shall not be more than 10^256 char)
       #   - same for command's result
       cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      cs.connect(('127.0.0.1', 2016))
-      cmdlen = len(ref_cmd)
-      if len(str(cmdlen)) > 256:
-        print 'load_images: error: command too long'
-        return
-      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
-      self.send_msg(cs, socket_cmd_size)
-      self.send_msg(cs, ref_cmd)
-      res_size = self.rcvd_msg(cs, 256)
-      reslen = int(res_size)
-      res = self.rcvd_msg(cs, reslen)
-      self.ids['product_reference'].text = 'référence : ' + \
-        str(res).split('\n')[0]
+      try:
+        cs.connect(('127.0.0.1', 2016))
+        cmdlen = len(ref_cmd)
+        if len(str(cmdlen)) > 256:
+          print 'load_images: error: command too long'
+          return
+        socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+        self.send_msg(cs, socket_cmd_size)
+        self.send_msg(cs, ref_cmd)
+        res_size = self.rcvd_msg(cs, 256)
+        reslen = int(res_size)
+        res = self.rcvd_msg(cs, reslen)
+        self.ids['product_reference'].text = 'référence : ' + \
+          str(res).split('\n')[0]
+      except:
+        print 'Error: unable to use socket server'
       cs.close()
       # we just got the ref, now  same for the price
       cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      cs.connect(('127.0.0.1', 2016))
-      cmdlen = len(price_cmd)
-      if len(str(cmdlen)) > 256:
-        print 'load_images: error: command too long'
-        return
-      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
-      self.send_msg(cs, socket_cmd_size)
-      self.send_msg(cs, price_cmd)
-      res_size = self.rcvd_msg(cs, 256)
-      reslen = int(res_size)
-      res = self.rcvd_msg(cs, reslen)
-      self.ids['product_price'].text = str(res).split('\n')[0] + '€'
+      try:
+        cs.connect(('127.0.0.1', 2016))
+        cmdlen = len(price_cmd)
+        if len(str(cmdlen)) > 256:
+          print 'load_images: error: command too long'
+          return
+        socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+        self.send_msg(cs, socket_cmd_size)
+        self.send_msg(cs, price_cmd)
+        res_size = self.rcvd_msg(cs, 256)
+        reslen = int(res_size)
+        res = self.rcvd_msg(cs, reslen)
+        self.ids['product_price'].text = str(res).split('\n')[0] + '€'
+      except:
+        print 'Error: unable to use socket server'
       cs.close()
   
   def switch_image(self, source_add):
@@ -853,8 +817,13 @@ class RootWidget(BoxLayout):
   # authenticate the user as a wholesaler
   def authenticate(self, dt):
     if self.passwd:
-      if not app.images_names.has_key('Home'):
+      if (not app.images_names.has_key('Home')) and platform == 'android':
         Clock.schedule_once(self.authenticate, 0.5)
+      if platform == 'ios':
+        app.get_ios_images(1)
+        app.get_ios_infos(1)
+        Clock.schedule_interval(app.get_ios_images, 600)
+        Clock.schedule_interval(app.get_ios_infos, 600)
       self.clear_widgets()
       HW = HomeWidget()
       self.add_widget(HW)
@@ -928,6 +897,91 @@ class PXPApp(App):
       data_dir = getattr(self, 'user_data_dir')
       path = join(data_dir, 'notification.dat')
       osc.sendMsg('/service-info', ['path and passwd', path, self.root.passwd, ], port=3000)
+  
+  # sending message via the socket
+  def send_msg(self, cs, msg):
+    sntlen = 0
+    ttllen = len(msg)
+    while sntlen < ttllen:
+      snt = cs.send(msg[sntlen:])
+      if snt == 0:
+        raise RuntimeError('socket broken')
+      sntlen += snt
+  
+  # receiving message from the socket
+  #  - msglen is the most difficult part to define
+  def rcvd_msg(self, cs, msglen):
+    chunks = []
+    bytrcv = 0
+    while bytrcv < msglen:
+      print 'waiting a chunk...'
+      chunk = cs.recv(min(msglen - bytrcv, 2048))
+      if chunk == '':
+        raise RuntimeError('socket broken')
+      chunks.append(chunk)
+      bytrcv += len(chunk)
+    return ''.join(chunks)
+  
+  # get images for iOS
+  def get_ios_images(self, dt):
+    cmd = 'ls -R /var/www/PXPAppProducts/'
+    cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
+      current_dir = ''
+      for entry in res.split('\n'):
+        pathname = entry.split('/')
+        image_name = entry.split('.')
+        if len(pathname) == 6:
+          current_dir = pathname[5].split(':')[0]
+          self.images_names[current_dir] = []
+        elif len(image_name) == 2 and image_name[1] == 'jpg':
+          self.images_names[current_dir].append(entry)
+    except:
+      print 'Error: unable to use server'
+    cs.close()
+  
+  # get info for iOS
+  def get_ios_infos(self, dt):
+    cmd = 'ls -R /Users/tjmaxgov/PXPAppProducts/'
+    cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+      cs.connect(('127.0.0.1', 2016))
+      cmdlen = len(cmd)
+      if len(str(cmdlen)) > 256:
+        print 'load_images: error: command too long'
+        return
+      socket_cmd_size = '0'*(256-len(str(cmdlen))) + str(cmdlen)
+      self.send_msg(cs, socket_cmd_size)
+      self.send_msg(cs, cmd)
+      res_size = self.rcvd_msg(cs, 256)
+      reslen = int(res_size)
+      res = self.rcvd_msg(cs, reslen)
+      current_dir = ''
+      for entry in res.split('\n'):
+        pathname = entry.split('/')
+        image_info = entry.split('.')
+        if len(pathname) == 6:
+          current_dir = pathname[5].split(':')[0]
+          self.images_infos[current_dir] = []
+        elif len(image_info) == 2:
+          info = image_info[0].split('_')
+          if len(info) == 3:
+            dic = {'name': info[0], 'type': info[1], 'value': info[2]}
+            self.images_infos[current_dir].append(dic)
+    except:
+      print 'Error: unable to use server'
+    cs.close()
   
   # so that memory is kept when app is left but not killed
   def on_pause(self):
