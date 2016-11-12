@@ -95,26 +95,30 @@ design = '''
   BoxLayout:
     orientation: 'vertical'
     AsyncImageButton:
-      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_tl.jpg'
+      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf-tl.jpg'
       allow_stretch: True
+      height: 400
       size_hint: (1, 0.5)
     AsyncImageButton:
-      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_bl.jpg'
+      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf-bl.jpg'
       allow_stretch: True
+      height: 400
       size_hint: (1, 0.5)
   AsyncImageButton:
-    source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_m.jpg'
+    source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf-m.jpg'
     allow_stretch: True
     height: 800
   BoxLayout:
     orientation: 'vertical'
     AsyncImageButton:
-      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_tr.jpg'
+      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf-tr.jpg'
       allow_stretch: True
+      height: 400
       size_hint: (1, 0.5)
     AsyncImageButton:
-      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf_br.jpg'
+      source: 'http://www.projectxparis.com/PXPAppProducts/GF/gf-br.jpg'
       allow_stretch: True
+      height: 400
       size_hint: (1, 0.5)
 
 <StoreWidget>:
